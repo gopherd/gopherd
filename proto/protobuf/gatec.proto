@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package gate;
+
+option csharp_namespace = "gopherd.gatec";
+option go_package = "proto/gatec";
+option optimize_for = LITE_RUNTIME;
+
+// optional message header
+message Header {
+    int32 version = 1;
+    int32 request_id = 2;
+}
+
+// @MessageType(1)
+message Ping {
+    string content = 1;
+}
+
+// @MessageType(2)
+message Pong {
+    string content = 1;
+}
+
+// @MessageType(3)
+message Login {
+    string token = 1;
+    bytes userdata = 2;
+}
+
+// @MessageType(4)
+message Logout {
+}
+
+// @MessageType(5)
+message Kickout {
+    enum KickoutReason {
+        ServiceClosed = 0;
+        UserLogout = 1;
+        LoginAnotherDevice = 2;
+        Frozen = 3;
+    }
+    int32 reason = 1;
+}

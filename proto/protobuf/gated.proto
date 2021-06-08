@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package gate;
+
+option csharp_namespace = "gopherd.gated";
+option go_package = "proto/gated";
+option optimize_for = LITE_RUNTIME;
+
+message Session {
+    int32 gate_id = 1;
+    int64 uid = 2;
+    bytes ip = 3;
+}
+
+// @MessageType(21)
+message Request {
+    Session session = 1;
+    bytes content = 2;
+}
+
+// @MessageType(22)
+message Response {
+    int64 uid = 1;
+    bytes content = 2;
+}
+
+// @MessageType(23)
+message Broadcast {
+    repeated int64 uids = 1;
+    bytes content = 2;
+}
