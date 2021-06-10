@@ -18,7 +18,7 @@ define install_target
 endef
 
 define build_protobuf
-	protoc --go_out=. --gopherd_out=. proto/protobuf/$(1)/*.proto
+	protoc --go_out=. --gopherd_out types_file=proto/types.txt:. proto/protobuf/$(1)/*.proto
 endef
 
 .PHONY: all

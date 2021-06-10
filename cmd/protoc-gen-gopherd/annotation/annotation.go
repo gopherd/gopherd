@@ -1,6 +1,7 @@
 package annotation
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"text/scanner"
@@ -10,9 +11,39 @@ import (
 	"github.com/gopherd/doge/text/fuzzy"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/gopherd/gopherd/cmd/protoc-gen-gopherd/context"
 )
 
-func Generate(gen *protogen.Plugin, f *protogen.File) error {
+// Annotation interface
+type Annotation interface {
+	Name() string
+}
+
+type Repeatable interface {
+	Repeatable()
+}
+
+const (
+	AnnotationType = "Type"
+)
+
+var allAnnotationTypes = []string{
+	AnnotationType,
+}
+
+func findSimilarAnnotationTypes(src string) []string {
+	var found []string
+	for _, dst := range allAnnotationTypes {
+		if fuzzy.Match(dst, src, 0.5) {
+			found = append(found, dst)
+		}
+	}
+	return found
+}
+
+// Generate generates code for annotations
+func Generate(ctx *context.Context, gen *protogen.Plugin, f *protogen.File) error {
 	var (
 		annotations = make(map[string][]*associatedAnnotation)
 		errors      []error
@@ -51,7 +82,7 @@ func Generate(gen *protogen.Plugin, f *protogen.File) error {
 	if len(errors) > 0 {
 		errorCnt := 0
 		for _, err := range errors {
-			if _, isWarning := err.(*warning); isWarning {
+			if isWarning(err) {
 				println("gopherd: Warning: " + err.Error())
 			} else {
 				println("gopherd: " + err.Error())
@@ -72,7 +103,9 @@ func Generate(gen *protogen.Plugin, f *protogen.File) error {
 	g.P("package ", f.GoPackageName)
 	for name, anns := range annotations {
 		if name == AnnotationType {
-			generateTypeAnnotation(gen, f, g, anns)
+			if err := generateTypeAnnotation(ctx, gen, f, g, anns); err != nil {
+				println("gopherd: " + err.Error())
+			}
 		}
 	}
 
@@ -106,12 +139,28 @@ func findPackageLeadingComments(gen *protogen.Plugin, f *protogen.File) []packag
 	return comments
 }
 
-type warning struct {
-	content string
+func getLineno(gen *protogen.Plugin, file *protogen.File, location protogen.Location) int {
+	for _, loc := range file.Proto.SourceCodeInfo.Location {
+		if location.Path.Equal(protoreflect.SourcePath(loc.Path)) {
+			return int(loc.Span[0])
+		}
+	}
+	return 0
 }
 
+type warning struct {
+	text string
+}
+
+func warn(text string) *warning { return &warning{text: text} }
+
 func (w *warning) Error() string {
-	return w.content
+	return w.text
+}
+
+func isWarning(err error) bool {
+	_, ok := err.(*warning)
+	return ok
 }
 
 func parseAnnotations(
@@ -126,9 +175,9 @@ func parseAnnotations(
 		if ann, err := parseAnnotation(associated, strings.TrimSpace(line)); err != nil {
 			return err
 		} else if ann != nil {
-			if prev, ok := seen[ann.Name()]; ok {
-				if err = ann.VerifyDuplicate(associated, prev); err != nil {
-					return err
+			if _, ok := seen[ann.Name()]; ok {
+				if _, ok := ann.(Repeatable); !ok {
+					return associated.errorf("@%s annotation duplicated", ann.Name())
 				}
 			}
 			seen[ann.Name()] = ann
@@ -137,15 +186,6 @@ func parseAnnotations(
 		associated.lineno++
 	}
 	return nil
-}
-
-func getLineno(gen *protogen.Plugin, file *protogen.File, location protogen.Location) int {
-	for _, loc := range file.Proto.SourceCodeInfo.Location {
-		if location.Path.Equal(protoreflect.SourcePath(loc.Path)) {
-			return int(loc.Span[0])
-		}
-	}
-	return 0
 }
 
 type associatedAnnotation struct {
@@ -178,6 +218,11 @@ func (associated *associated) reset() {
 
 func (associated *associated) filename() string {
 	return associated.file.Desc.Path()
+}
+
+func (associated *associated) errorf(format string, args ...interface{}) error {
+	prefix := fmt.Sprintf("%s:%d: ", associated.filename(), associated.lineno+1)
+	return errors.New(prefix + fmt.Sprintf(format, args...))
 }
 
 func parseAnnotation(associated associated, src string) (ann Annotation, err error) {
@@ -220,9 +265,10 @@ func parseAnnotation(associated associated, src string) (ann Annotation, err err
 			parser.Next()
 			pos := parser.BeginPos()
 			pos.Column = commentLeadingSize
-			err = &warning{
-				content: fmt.Sprintf("%s: unknown annotation `%s`, did you mean: %s?", pos, name, strings.Join(found, ",")),
+			for i := range found {
+				found[i] = "@" + found[i]
 			}
+			err = warn(fmt.Sprintf("%s: unknown annotation @%s, did you mean: %s?", pos, name, strings.Join(found, ",")))
 		}
 		return
 	}
@@ -242,28 +288,4 @@ func isIdent(s string) bool {
 
 func isIdentRune(ch rune, i int) bool {
 	return ch == '_' || unicode.IsLetter(ch) || unicode.IsDigit(ch) && i > 0
-}
-
-// Annotation interface
-type Annotation interface {
-	Name() string
-	VerifyDuplicate(associated associated, prev Annotation) error
-}
-
-const (
-	AnnotationType = "Type"
-)
-
-var allAnnotationTypes = []string{
-	AnnotationType,
-}
-
-func findSimilarAnnotationTypes(src string) []string {
-	var found []string
-	for _, dst := range allAnnotationTypes {
-		if fuzzy.Match(dst, src, 0.5) {
-			found = append(found, dst)
-		}
-	}
-	return found
 }

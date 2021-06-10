@@ -4,8 +4,7 @@
 /*
 Package gatepb is a generated protocol buffer package.
 
-@Type("proto/types.proto", min=1, max=100)
-@Type("proto/types.proto", min=1, max=100)
+@Type(min=1, max=2, export)
 
 It is generated from these files:
 	proto/protobuf/gatepb/gatec.proto

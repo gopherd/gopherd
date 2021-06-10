@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-// @Type("proto/types.proto")
 package gatepb;
 
 option csharp_namespace = "gopherd.gatepb";

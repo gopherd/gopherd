@@ -9,16 +9,18 @@ import (
 type File struct {
 	GeneratedFile *protogen.GeneratedFile
 	Handler       Handler
+	Error         error
 }
 
 type Handler interface {
-	Parse([]byte, error) error
+	Parse(string, []byte, error) error
 	Output(*protogen.GeneratedFile)
 }
 
 type Context struct {
-	plugin *protogen.Plugin
-	files  map[string]*File
+	TypesFilename string
+	plugin        *protogen.Plugin
+	files         map[string]*File
 }
 
 func New(plugin *protogen.Plugin) *Context {
@@ -28,21 +30,32 @@ func New(plugin *protogen.Plugin) *Context {
 	}
 }
 
-func (ctx *Context) Open(filename string, goImportPath protogen.GoImportPath, parser Handler) (*File, error) {
+func (ctx *Context) Open(filename string, goImportPath protogen.GoImportPath, handler Handler) (*File, error) {
 	if file, ok := ctx.files[filename]; ok {
-		return file, nil
+		return file, file.Error
 	}
 	file := &File{
 		GeneratedFile: ctx.plugin.NewGeneratedFile(filename, goImportPath),
 	}
-	if parser != nil {
+	ctx.files[filename] = file
+	if handler != nil {
 		data, err := ioutil.ReadFile(filename)
-		err = parser.Parse(data, err)
+		err = handler.Parse(filename, data, err)
 		if err != nil {
+			println("gopherd: open file", filename, "error:", err.Error())
+			file.Error = err
 			return nil, err
 		}
-		file.Handler = parser
+		file.Handler = handler
 	}
-	ctx.files[filename] = file
 	return file, nil
+}
+
+func (ctx *Context) Done() {
+	for _, f := range ctx.files {
+		if f.Error != nil {
+			continue
+		}
+		f.Handler.Output(f.GeneratedFile)
+	}
 }
