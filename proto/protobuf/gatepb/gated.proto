@@ -1,9 +1,10 @@
 syntax = "proto3";
 
-package gate;
+// @Type("proto/types.proto")
+package gatepb;
 
-option csharp_namespace = "gopherd.gated";
-option go_package = "proto/gated";
+option csharp_namespace = "gopherd.gatepb";
+option go_package = "proto/gatepb";
 option optimize_for = LITE_RUNTIME;
 
 message Session {
@@ -12,19 +13,19 @@ message Session {
     bytes ip = 3;
 }
 
-// @MessageType(21)
+// @Type(21)
 message Request {
     Session session = 1;
     bytes content = 2;
 }
 
-// @MessageType(22)
+// @Type(22)
 message Response {
     int64 uid = 1;
     bytes content = 2;
 }
 
-// @MessageType(23)
+// @Type(23)
 message Broadcast {
     repeated int64 uids = 1;
     bytes content = 2;

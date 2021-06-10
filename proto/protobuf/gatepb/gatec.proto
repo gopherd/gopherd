@@ -1,9 +1,11 @@
 syntax = "proto3";
 
-package gate;
+// @Type("proto/types.proto", min=1, max=100)
+// @Type("proto/types.proto", min=1, max=100)
+package gatepb;
 
-option csharp_namespace = "gopherd.gatec";
-option go_package = "proto/gatec";
+option csharp_namespace = "gopherd.gatepb";
+option go_package = "proto/gatepb";
 option optimize_for = LITE_RUNTIME;
 
 // optional message header
@@ -12,27 +14,27 @@ message Header {
     int32 request_id = 2;
 }
 
-// @MessageType(1)
+// @Type(1)
 message Ping {
     string content = 1;
 }
 
-// @MessageType(2)
+// @Type(2)
 message Pong {
     string content = 1;
 }
 
-// @MessageType(3)
+// @Type(3)
 message Login {
     string token = 1;
     bytes userdata = 2;
 }
 
-// @MessageType(4)
+// @Type(4)
 message Logout {
 }
 
-// @MessageType(5)
+// @Type(5)
 message Kickout {
     enum KickoutReason {
         ServiceClosed = 0;

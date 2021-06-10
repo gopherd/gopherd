@@ -18,7 +18,7 @@ define install_target
 endef
 
 define build_protobuf
-	protoc --go_out=. --gopherd_out=. proto/protobuf/$(1)
+	protoc --go_out=. --gopherd_out=. proto/protobuf/$(1)/*.proto
 endef
 
 .PHONY: all
@@ -33,8 +33,7 @@ autogen: proto
 
 .PHONY: proto
 proto:
-	$(call build_protobuf,gatec.proto)
-	$(call build_protobuf,gated.proto)
+	$(call build_protobuf,gatepb)
 
 .PHONY: cmd
 cmd: gated
