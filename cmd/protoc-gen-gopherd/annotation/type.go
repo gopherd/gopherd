@@ -206,12 +206,12 @@ func generateTypeAnnotation(ctx *context.Context, gen *protogen.Plugin, f *proto
 		messageCnt++
 	}
 	if messageCnt > 0 {
-		if ctx.TypesFilename != "" && packageMessageType != nil && (packageMessageType.Oneof.Source.Export == nil || *packageMessageType.Oneof.Source.Export == true) {
+		if ctx.Type.Filename != "" && packageMessageType != nil && (packageMessageType.Oneof.Source.Export == nil || *packageMessageType.Oneof.Source.Export == true) {
 			var parser = newTypesTxtParser(
 				packageMessageType.Oneof.Source.Min,
 				packageMessageType.Oneof.Source.Max,
 			)
-			f, err := ctx.Open(ctx.TypesFilename, "", parser)
+			f, err := ctx.Open(ctx.Type.Filename, "", parser)
 			if err != nil {
 				return err
 			}
@@ -226,7 +226,7 @@ func generateTypeAnnotation(ctx *context.Context, gen *protogen.Plugin, f *proto
 			messageType := ann.annotation.(*Type)
 			if typesFile != nil {
 				err := typesFile.Handler.(*typesTxtParser).generator.generate(
-					ann.associated.oneof.message.GoIdent.GoName+"Type",
+					ctx.Type.Prefix+ann.associated.oneof.message.GoIdent.GoName+ctx.Type.Suffix,
 					*messageType,
 				)
 				if err != nil {
@@ -246,7 +246,7 @@ func generateTypeAnnotation(ctx *context.Context, gen *protogen.Plugin, f *proto
 				)
 			}
 			err := typesFile.Handler.(*typesTxtParser).generator.generate(
-				ann.associated.oneof.message.GoIdent.GoName+"Type",
+				ctx.Type.Prefix+ann.associated.oneof.message.GoIdent.GoName+ctx.Type.Suffix,
 				*messageType,
 			)
 			if err != nil {
@@ -263,14 +263,31 @@ func generateTypeAnnotation(ctx *context.Context, gen *protogen.Plugin, f *proto
 			g.P("const (")
 			for _, ann := range typedAnns {
 				messageType := ann.annotation.(*Type)
-				g.P(ann.associated.oneof.message.GoIdent.GoName, "Type = ", messageType.Oneof.Value)
+				name := ann.associated.oneof.message.GoIdent.GoName
+				constName := ctx.Type.Prefix + name + ctx.Type.Suffix
+				g.P(constName, " = ", messageType.Oneof.Value)
 			}
 			g.P(")")
+
+			if ctx.Type.Registry != "" {
+				g.P()
+				g.P("func init() {")
+				for _, ann := range typedAnns {
+					name := ann.associated.oneof.message.GoIdent.GoName
+					constName := ctx.Type.Prefix + name + ctx.Type.Suffix
+					g.P("\ttype_registry.Register(", constName, ", func() type_registry.Message { return new(", name, ") })")
+				}
+				g.P("}")
+			}
 
 			g.P()
 			for _, ann := range typedAnns {
 				name := ann.associated.oneof.message.GoIdent.GoName
-				g.P("\tfunc (*", name, ") Type() int32 { return ", name, "Type }")
+				constName := ctx.Type.Prefix + name + ctx.Type.Suffix
+				g.P("\tfunc (*", name, ") ", ctx.Type.Method, "() int32 { return ", constName, " }")
+				if ctx.Type.RegistrySizeMethod != "" {
+					g.P("\tfunc (m *", name, ") ", ctx.Type.RegistrySizeMethod, "() int { return proto.Size(m) }")
+				}
 			}
 		}
 	}

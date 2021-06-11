@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	gengo "google.golang.org/protobuf/cmd/protoc-gen-go/internal_gengo"
 	"google.golang.org/protobuf/compiler/protogen"
@@ -12,16 +13,30 @@ import (
 
 func main() {
 	var (
-		flags     flag.FlagSet
-		typesFile = flags.String("types_file", "", "types filename for store message types")
+		flags                 flag.FlagSet
+		typeFile              = flags.String("type_file", "", "type filename for store message types")
+		typePrefix            = flags.String("type_prefix", "xxx_", "type const prefix")
+		typeSuffix            = flags.String("type_suffix", "_type", "type const suffix")
+		typeMethod            = flags.String("type_method", "Type", "type method name")
+		typeRegisty           = flags.String("type_registry", "github.com/gopherd/doge/encoding/proto", "typed message registry package")
+		typeRegistySizeMethod = flags.String("registry_size_method", "Size", "size method name")
 	)
 	protogen.Options{
 		ParamFunc: flags.Set,
 	}.Run(func(gen *protogen.Plugin) error {
 		var ctx = context.New(gen)
-		ctx.TypesFilename = *typesFile
+		ctx.Type.Filename = *typeFile
+		ctx.Type.Prefix = *typePrefix
+		ctx.Type.Suffix = *typeSuffix
+		ctx.Type.Method = *typeMethod
+		ctx.Type.Registry = *typeRegisty
+		ctx.Type.RegistrySizeMethod = *typeRegistySizeMethod
+		if ctx.Type.Prefix == "" && ctx.Type.Suffix == "" {
+			return fmt.Errorf("gopherd plugin flags type_prefix and type_suffix are both empty")
+		}
 		for _, f := range gen.Files {
 			if f.Generate {
+				gengo.GenerateFile(gen, f)
 				if err := annotation.Generate(ctx, gen, f); err != nil {
 					return err
 				}

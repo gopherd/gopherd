@@ -2,6 +2,9 @@
 // source: proto/protobuf/gatepb/gatec.proto
 package gatepb
 
+import type_registry "github.com/gopherd/doge/encoding/proto"
+import proto "google.golang.org/protobuf/proto"
+
 const (
 	PingType    = 1
 	PongType    = 2
@@ -10,8 +13,21 @@ const (
 	KickoutType = 5
 )
 
+func init() {
+	type_registry.Register(PingType, func() type_registry.Message { return new(Ping) })
+	type_registry.Register(PongType, func() type_registry.Message { return new(Pong) })
+	type_registry.Register(LoginType, func() type_registry.Message { return new(Login) })
+	type_registry.Register(LogoutType, func() type_registry.Message { return new(Logout) })
+	type_registry.Register(KickoutType, func() type_registry.Message { return new(Kickout) })
+}
+
 func (*Ping) Type() int32    { return PingType }
+func (m *Ping) Size() int    { return proto.Size(m) }
 func (*Pong) Type() int32    { return PongType }
+func (m *Pong) Size() int    { return proto.Size(m) }
 func (*Login) Type() int32   { return LoginType }
+func (m *Login) Size() int   { return proto.Size(m) }
 func (*Logout) Type() int32  { return LogoutType }
+func (m *Logout) Size() int  { return proto.Size(m) }
 func (*Kickout) Type() int32 { return KickoutType }
+func (m *Kickout) Size() int { return proto.Size(m) }

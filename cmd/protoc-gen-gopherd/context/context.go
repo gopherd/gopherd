@@ -18,9 +18,17 @@ type Handler interface {
 }
 
 type Context struct {
-	TypesFilename string
-	plugin        *protogen.Plugin
-	files         map[string]*File
+	plugin *protogen.Plugin
+	files  map[string]*File
+
+	Type struct {
+		Filename           string
+		Prefix             string
+		Suffix             string
+		Method             string
+		Registry           string
+		RegistrySizeMethod string
+	}
 }
 
 func New(plugin *protogen.Plugin) *Context {

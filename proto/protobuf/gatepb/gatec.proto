@@ -33,13 +33,14 @@ message Login {
 message Logout {
 }
 
+enum KickoutReason {
+	ServiceClosed = 0;
+	UserLogout = 1;
+	LoginAnotherDevice = 2;
+	Frozen = 3;
+}
+
 // @Type(5)
 message Kickout {
-    enum KickoutReason {
-        ServiceClosed = 0;
-        UserLogout = 1;
-        LoginAnotherDevice = 2;
-        Frozen = 3;
-    }
     int32 reason = 1;
 }
