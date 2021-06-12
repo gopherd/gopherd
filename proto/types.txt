@@ -1,5 +1,0 @@
-PingType=1
-PongType=2
-LoginType=3
-LogoutType=4
-KickoutType=5

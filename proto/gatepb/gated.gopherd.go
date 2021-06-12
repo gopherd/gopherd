@@ -2,7 +2,7 @@
 // source: proto/protobuf/gatepb/gated.proto
 package gatepb
 
-import type_registry "github.com/gopherd/doge/encoding/proto"
+import type_registry "github.com/gopherd/doge/proto"
 import proto "google.golang.org/protobuf/proto"
 
 const (
@@ -17,9 +17,11 @@ func init() {
 	type_registry.Register(BroadcastType, func() type_registry.Message { return new(Broadcast) })
 }
 
-func (*Request) Type() int32   { return RequestType }
-func (m *Request) Size() int   { return proto.Size(m) }
-func (*Response) Type() int32  { return ResponseType }
-func (m *Response) Size() int  { return proto.Size(m) }
+func (*Request) Type() int32 { return RequestType }
+func (m *Request) Size() int { return proto.Size(m) }
+
+func (*Response) Type() int32 { return ResponseType }
+func (m *Response) Size() int { return proto.Size(m) }
+
 func (*Broadcast) Type() int32 { return BroadcastType }
 func (m *Broadcast) Size() int { return proto.Size(m) }

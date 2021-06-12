@@ -4,8 +4,6 @@
 // 	protoc        v3.15.6
 // source: proto/protobuf/gatepb/gatec.proto
 
-// @Type(min=1, max=2, export)
-
 package gatepb
 
 import (

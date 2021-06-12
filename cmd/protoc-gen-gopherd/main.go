@@ -15,10 +15,10 @@ func main() {
 	var (
 		flags                 flag.FlagSet
 		typeFile              = flags.String("type_file", "", "type filename for store message types")
-		typePrefix            = flags.String("type_prefix", "xxx_", "type const prefix")
-		typeSuffix            = flags.String("type_suffix", "_type", "type const suffix")
+		typePrefix            = flags.String("type_prefix", "", "type const prefix")
+		typeSuffix            = flags.String("type_suffix", "Type", "type const suffix")
 		typeMethod            = flags.String("type_method", "Type", "type method name")
-		typeRegisty           = flags.String("type_registry", "github.com/gopherd/doge/encoding/proto", "typed message registry package")
+		typeRegisty           = flags.String("type_registry", "github.com/gopherd/doge/proto", "typed message registry package")
 		typeRegistySizeMethod = flags.String("registry_size_method", "Size", "size method name")
 	)
 	protogen.Options{

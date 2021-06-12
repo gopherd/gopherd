@@ -280,10 +280,10 @@ func generateTypeAnnotation(ctx *context.Context, gen *protogen.Plugin, f *proto
 				g.P("}")
 			}
 
-			g.P()
 			for _, ann := range typedAnns {
 				name := ann.associated.oneof.message.GoIdent.GoName
 				constName := ctx.Type.Prefix + name + ctx.Type.Suffix
+				g.P()
 				g.P("\tfunc (*", name, ") ", ctx.Type.Method, "() int32 { return ", constName, " }")
 				if ctx.Type.RegistrySizeMethod != "" {
 					g.P("\tfunc (m *", name, ") ", ctx.Type.RegistrySizeMethod, "() int { return proto.Size(m) }")
