@@ -2,6 +2,7 @@ package server
 
 import (
 	"strings"
+	"time"
 
 	"github.com/gopherd/doge/config"
 )
@@ -10,22 +11,28 @@ import (
 type Config struct {
 	config.BaseConfig
 
-	Host                        string `json:"host"`
-	Port                        int    `json:"port"`
-	KeepaliveSeconds            int64  `json:"keepalive_seconds"`
-	ForwardEcho                 bool   `json:"forward_echo"`
+	Net struct {
+		Host        string        `json:"host"`
+		Port        int           `json:"port"`
+		Keepalive   time.Duration `json:"keepalive"`
+		ReadTimeout time.Duration `json:"read_timeout"`
+	} `json:"net"`
+	Keepalive                   int64  `json:"keepalive"`
+	ForwardPing                 bool   `json:"forward_ping"`
 	UserTTL                     int    `json:"user_ttl"`
 	MaxConns                    int    `json:"max_conns"`
 	MaxConnsPerIP               int    `json:"max_conns_per_ip"`
 	TimeoutForUnauthorizedConn  int    `json:"timeout_for_unauthorized_conn"`
 	DefaultLocationForUnknownIP string `json:"default_location_for_unknown_ip"`
 	JWT                         struct {
-		KeyFile string `json:"key_file"`
-		Issuer  string `json:"issuer"`
+		Key    string `json:"key"`
+		Issuer string `json:"issuer"`
 	} `json:"jwt"`
-	LimiterMsgInterval       int `json:"limiter_msg_interval"`
-	LimiterMsgCount          int `json:"limiter_msg_count"`
-	LimiterBroadcastInterval int `json:"limiter_broadcast_interval"`
+	Limiter struct {
+		MsgInterval       int `json:"msg_interval"`
+		MsgCount          int `json:"msg_count"`
+		BroadcastInterval int `json:"broadcast_interval"`
+	} `json:"limiter"`
 }
 
 func NewConfig() *Config {
@@ -34,6 +41,7 @@ func NewConfig() *Config {
 
 const defaultConfigContent = `{
 	core: {
+		// Unique server id
 		id: 1001,
 
 		log: {
@@ -41,22 +49,28 @@ const defaultConfigContent = `{
 			level: "debug",
 			// Log prefix
 			prefix: "{{.name}}",
+			// Log writers
 			writers: [
 				"consle",
-				"file://var/log/{{.id}}?suffix=.txt"
+				"file://var/log/{{.name}}.{{.id}}?suffix=.txt"
 			]
 		},
 
 		mq: {
 			name: "zeromq",
-			source: "0.0.0.0:9001"
+			source: "0.0.0.0:2{{.id}}"
 		},
 
+		// Service discovery config
 		discovery: {
 			name: "redis",
-			source: ""
+			source: "127.0.0.1:2639?key=service.discovery"
 		}
-	}
+	},
+
+	// Listening address
+	host: "0.0.0.0",
+	port: 1{{.id}}
 }
 `
 

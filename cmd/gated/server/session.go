@@ -98,6 +98,11 @@ func (s *session) OnMessage(body netutil.Body) error {
 	return s.handler.onMessage(s, body)
 }
 
+// Serve runs the session read/write loops
+func (s *session) serve() {
+	s.internal.session.Serve()
+}
+
 // Write writes data to underlying connection
 func (s *session) Write(data []byte) (int, error) {
 	atomic.AddInt64(&s.internal.stats.send, int64(len(data)))

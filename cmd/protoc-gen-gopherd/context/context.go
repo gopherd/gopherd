@@ -22,12 +22,11 @@ type Context struct {
 	files  map[string]*File
 
 	Type struct {
-		Filename           string
-		Prefix             string
-		Suffix             string
-		Method             string
-		Registry           string
-		RegistrySizeMethod string
+		TypesFile    string
+		ConstPrefix  string
+		ConstSuffix  string
+		TypeMethod   string
+		TypeRegistry string
 	}
 }
 

@@ -102,11 +102,8 @@ func Generate(ctx *context.Context, gen *protogen.Plugin, f *protogen.File) erro
 	g.P("// source: ", f.Desc.Path())
 	g.P("package ", f.GoPackageName)
 	g.P()
-	if ctx.Type.Registry != "" {
-		g.P("import type_registry ", `"`, ctx.Type.Registry, `"`)
-		if ctx.Type.RegistrySizeMethod != "" {
-			g.P("import proto ", `"google.golang.org/protobuf/proto"`)
-		}
+	if ctx.Type.TypeRegistry != "" {
+		g.P("import registry ", `"`, ctx.Type.TypeRegistry, `"`)
 	}
 	for name, anns := range annotations {
 		if name == AnnotationType {
