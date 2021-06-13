@@ -20,8 +20,8 @@ func init() {
 	registry.Register("gatepb", KickoutType, func() registry.Message { return new(Kickout) })
 }
 
-func (*Ping) Type() int32    { return PingType }
-func (*Pong) Type() int32    { return PongType }
-func (*Login) Type() int32   { return LoginType }
-func (*Logout) Type() int32  { return LogoutType }
-func (*Kickout) Type() int32 { return KickoutType }
+func (*Ping) Type() uint32    { return PingType }
+func (*Pong) Type() uint32    { return PongType }
+func (*Login) Type() uint32   { return LoginType }
+func (*Logout) Type() uint32  { return LogoutType }
+func (*Kickout) Type() uint32 { return KickoutType }

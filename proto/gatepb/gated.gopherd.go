@@ -16,6 +16,6 @@ func init() {
 	registry.Register("gatepb", BroadcastType, func() registry.Message { return new(Broadcast) })
 }
 
-func (*Request) Type() int32   { return RequestType }
-func (*Response) Type() int32  { return ResponseType }
-func (*Broadcast) Type() int32 { return BroadcastType }
+func (*Request) Type() uint32   { return RequestType }
+func (*Response) Type() uint32  { return ResponseType }
+func (*Broadcast) Type() uint32 { return BroadcastType }

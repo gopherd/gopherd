@@ -20,15 +20,15 @@ import (
 )
 
 // @Type
-// @Type(value: int32)
-// @Type(source: string[, min=int32, max=int32])
+// @Type(value: uint32)
+// @Type(export[=boolean], min=uint32, max=uint32)
 type Type struct {
 	Oneof struct {
 		Empty  bool
-		Value  int32
+		Value  uint32
 		Source struct {
 			Export   *bool
-			Min, Max int32
+			Min, Max uint32
 		}
 	}
 }
@@ -101,11 +101,11 @@ func parseTypeAnnotation(associated associated, parser *encoding.Parser) (ann An
 		if err != nil {
 			return
 		}
-		if value > math.MaxInt32 || value < math.MinInt32 {
-			err = associated.errorf("%s %d out of range [%d, %d]", AnnotationType, value, math.MinInt32, math.MaxInt32)
+		if value > math.MaxUint32 || value < 0 {
+			err = associated.errorf("%s %d out of range [%d, %d]", AnnotationType, value, 0, math.MaxUint32)
 			return
 		}
-		m.Oneof.Value = int32(value)
+		m.Oneof.Value = uint32(value)
 		if err = parser.Next(); err != nil {
 			return
 		}
@@ -137,7 +137,7 @@ func parseTypeAnnotationNamedArgument(associated associated, parser *encoding.Pa
 	}
 	value := parser.Lit
 
-	parseInt32 := func() (int32, error) {
+	parseUint32 := func() (uint32, error) {
 		if !hasValue {
 			return 0, parser.ExpectError(scanner.Int)
 		}
@@ -145,14 +145,15 @@ func parseTypeAnnotationNamedArgument(associated associated, parser *encoding.Pa
 			return 0, parser.ExpectError(scanner.Int)
 		}
 		x, err := strconv.Atoi(value)
-		if err == nil && (x < math.MinInt32 || x > math.MaxInt32) {
-			return 0, associated.errorf("@%s: %d out of range [%d, %d]", AnnotationType, x, math.MinInt32, math.MaxInt32)
+		if err == nil && (x < 0 || x > math.MaxUint32) {
+			return 0, associated.errorf("@%s: %d out of range [%d, %d]", AnnotationType, x, 0, math.MaxUint32)
 		}
-		return int32(x), err
+		return uint32(x), err
 	}
 	parseBool := func() (*bool, error) {
 		if !hasValue {
-			return nil, nil
+			x := true
+			return &x, nil
 		}
 		if parser.Tok != scanner.Ident || (value != "true" && value != "false") {
 			return nil, parser.ExpectValue("true or false")
@@ -164,9 +165,9 @@ func parseTypeAnnotationNamedArgument(associated associated, parser *encoding.Pa
 	var err error
 	switch key {
 	case "min":
-		m.Oneof.Source.Min, err = parseInt32()
+		m.Oneof.Source.Min, err = parseUint32()
 	case "max":
-		m.Oneof.Source.Max, err = parseInt32()
+		m.Oneof.Source.Max, err = parseUint32()
 	case "export":
 		m.Oneof.Source.Export, err = parseBool()
 	default:
@@ -284,7 +285,7 @@ func generateTypeAnnotation(ctx *context.Context, gen *protogen.Plugin, f *proto
 			for _, ann := range typedAnns {
 				name := ann.associated.oneof.message.GoIdent.GoName
 				constName := ctx.Type.ConstPrefix + name + ctx.Type.ConstSuffix
-				g.P("\tfunc (*", name, ") ", ctx.Type.TypeMethod, "() int32 { return ", constName, " }")
+				g.P("\tfunc (*", name, ") ", ctx.Type.TypeMethod, "() uint32 { return ", constName, " }")
 			}
 		}
 	}
@@ -294,37 +295,37 @@ func generateTypeAnnotation(ctx *context.Context, gen *protogen.Plugin, f *proto
 
 type _type struct {
 	name string
-	typ  int32
+	typ  uint32
 }
 
 type typeContainer struct {
 	types       []_type
 	nameIndices map[string]int
-	typeIndices map[int32]int
+	typeIndices map[uint32]int
 	available   struct {
-		sections [][2]int32
-		values   []int32
+		sections [][2]uint32
+		values   []uint32
 	}
 }
 
-func newTypeContainer(min, max int32) *typeContainer {
+func newTypeContainer(min, max uint32) *typeContainer {
 	tc := &typeContainer{
 		nameIndices: make(map[string]int),
-		typeIndices: make(map[int32]int),
+		typeIndices: make(map[uint32]int),
 	}
 	tc.setMinmax(min, max)
 	return tc
 }
 
-func (tc *typeContainer) setMinmax(min, max int32) {
+func (tc *typeContainer) setMinmax(min, max uint32) {
 	if max >= min {
 		if max-min < 1024 {
-			tc.available.values = make([]int32, max-min+1)
+			tc.available.values = make([]uint32, max-min+1)
 			for i := range tc.available.values {
-				tc.available.values[i] = min + int32(i)
+				tc.available.values[i] = min + uint32(i)
 			}
 		} else {
-			tc.available.sections = [][2]int32{{min, max + 1}}
+			tc.available.sections = [][2]uint32{{min, max + 1}}
 		}
 	}
 }
@@ -335,7 +336,7 @@ func (tc *typeContainer) sort() {
 	})
 }
 
-func (tc *typeContainer) split(i int, typ int32) {
+func (tc *typeContainer) split(i int, typ uint32) {
 	if typ < tc.available.sections[i][0] || typ >= tc.available.sections[i][1] {
 		return
 	}
@@ -351,7 +352,7 @@ func (tc *typeContainer) split(i int, typ int32) {
 		tc.available.sections[i][1] = typ
 	} else {
 		tc.available.sections[i][1] = typ
-		var section = [2]int32{tc.available.sections[i][0], typ}
+		var section = [2]uint32{tc.available.sections[i][0], typ}
 		tc.available.sections[i][0] = typ + 1
 		tc.available.sections = append(tc.available.sections, section)
 		copy(tc.available.sections[i+1:], tc.available.sections[i:n])
@@ -359,7 +360,7 @@ func (tc *typeContainer) split(i int, typ int32) {
 	}
 }
 
-func (tc *typeContainer) insert(name string, typ int32) int {
+func (tc *typeContainer) insert(name string, typ uint32) int {
 	if i := tc.byType(typ); i >= 0 && tc.types[i].name != name {
 		return i
 	}
@@ -374,7 +375,7 @@ func (tc *typeContainer) insert(name string, typ int32) int {
 	return -1
 }
 
-func (tc *typeContainer) onInsert(typ int32) {
+func (tc *typeContainer) onInsert(typ uint32) {
 	n := len(tc.available.sections)
 	if n == 0 {
 		n = len(tc.available.values)
@@ -419,7 +420,7 @@ func (gen *typeContainer) byName(name string) int {
 	return -1
 }
 
-func (tc *typeContainer) byType(typ int32) int {
+func (tc *typeContainer) byType(typ uint32) int {
 	if i, ok := tc.typeIndices[typ]; ok {
 		return i
 	}
@@ -427,21 +428,21 @@ func (tc *typeContainer) byType(typ int32) int {
 }
 
 type typeGenerator struct {
-	min, max  int32
+	min, max  uint32
 	old, new  *typeContainer
-	available [][2]int32
+	available [][2]uint32
 }
 
-func newTypeGenerator(min, max int32) *typeGenerator {
+func newTypeGenerator(min, max uint32) *typeGenerator {
 	return &typeGenerator{
 		min: min,
 		max: max,
-		old: newTypeContainer(0, -1),
+		old: newTypeContainer(1, 0),
 		new: newTypeContainer(min, max),
 	}
 }
 
-func (gen *typeGenerator) setMinmax(min, max int32) {
+func (gen *typeGenerator) setMinmax(min, max uint32) {
 	if min == gen.min && max == gen.max {
 		return
 	}
@@ -453,7 +454,7 @@ func (gen *typeGenerator) setMinmax(min, max int32) {
 	}
 }
 
-func (gen *typeGenerator) rand(name string) (int32, error) {
+func (gen *typeGenerator) rand(name string) (uint32, error) {
 	if len(gen.new.available.values) > 0 {
 		i := rand.Intn(len(gen.new.available.values))
 		return gen.new.available.values[i], nil
@@ -467,7 +468,7 @@ func (gen *typeGenerator) rand(name string) (int32, error) {
 		for _, sec := range gen.new.available.sections {
 			sum += int(sec[1]) - int(sec[0])
 			if sum > x {
-				return int32(rand.Intn(int(sec[1])-int(sec[0]))) + sec[0], nil
+				return uint32(rand.Intn(int(sec[1])-int(sec[0]))) + sec[0], nil
 			}
 		}
 	}
@@ -498,8 +499,8 @@ func (gen *typeGenerator) generate(name string, t Type) error {
 
 	var (
 		i       = gen.old.byName(name)
-		oldType int32
-		newType int32
+		oldType uint32
+		newType uint32
 	)
 	if i >= 0 {
 		oldType = gen.old.types[i].typ
@@ -547,13 +548,13 @@ type typesTxtParser struct {
 	generator *typeGenerator
 }
 
-func newTypesTxtParser(min, max int32) *typesTxtParser {
+func newTypesTxtParser(min, max uint32) *typesTxtParser {
 	return &typesTxtParser{
 		generator: newTypeGenerator(min, max),
 	}
 }
 
-func (parser *typesTxtParser) setMinmax(min, max int32) {
+func (parser *typesTxtParser) setMinmax(min, max uint32) {
 	parser.generator.setMinmax(min, max)
 }
 
@@ -583,7 +584,7 @@ func (parser *typesTxtParser) Parse(filename string, data []byte, err error) err
 		if err != nil {
 			return fmt.Errorf("%s:%d: type `%s` is not an integer", filename, lineno, result[0][2])
 		}
-		parser.generator.old.insert(name, int32(typ))
+		parser.generator.old.insert(name, uint32(typ))
 	}
 	return err
 }
@@ -610,7 +611,7 @@ type typesProtoParser struct {
 	generator *typeGenerator
 }
 
-func newTypesProtoParser(min, max int32) *typesProtoParser {
+func newTypesProtoParser(min, max uint32) *typesProtoParser {
 	return &typesProtoParser{
 		generator: newTypeGenerator(min, max),
 	}
