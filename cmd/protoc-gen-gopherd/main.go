@@ -30,7 +30,10 @@ func main() {
 		ctx.Type.TypeMethod = *typeMethod
 		ctx.Type.TypeRegistry = *typeRegisty
 		if ctx.Type.ConstPrefix == "" && ctx.Type.ConstSuffix == "" {
-			return fmt.Errorf("gopherd plugin flags type_prefix and type_suffix are both empty")
+			return fmt.Errorf("gopherd plugin flags const_prefix and const_suffix are both empty")
+		}
+		if ctx.Type.TypeMethod != "" && ctx.Type.TypeRegistry == "" {
+			return fmt.Errorf("gopherd plugin flags type_registry MUST be non-empty while type_method non-empty")
 		}
 		for _, f := range gen.Files {
 			if f.Generate {

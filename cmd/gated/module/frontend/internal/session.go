@@ -1,4 +1,4 @@
-package server
+package internal
 
 import (
 	"net"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/gopherd/doge/jwt"
 	"github.com/gopherd/doge/net/netutil"
+	"github.com/gopherd/doge/proto"
 	"github.com/mkideal/log"
 )
 
@@ -31,7 +32,7 @@ const (
 type handler interface {
 	onReady(*session)
 	onClose(*session, error)
-	onMessage(*session, netutil.Body) error
+	onMessage(*session, proto.Body) error
 }
 
 // session holds a context for each connection
@@ -92,13 +93,13 @@ func (s *session) OnClose(err error) {
 }
 
 // OnMessage implements netutil.SessionEventHandler OnMessage method
-func (s *session) OnMessage(body netutil.Body) error {
+func (s *session) OnMessage(body proto.Body) error {
 	atomic.AddInt64(&s.internal.stats.recv, int64(body.Len()))
 	s.keepalive()
 	return s.handler.onMessage(s, body)
 }
 
-// Serve runs the session read/write loops
+// serve runs the session read/write loops
 func (s *session) serve() {
 	s.internal.session.Serve()
 }
@@ -114,6 +115,16 @@ func (s *session) Close() error {
 	log.Debug("close session %d", s.id)
 	s.setState(stateClosing)
 	return s.internal.session.Close()
+}
+
+func (sess *session) send(m proto.Message) error {
+	buf := proto.AllocBuffer()
+	defer proto.FreeBuffer(buf)
+	if err := buf.Encode(m); err != nil {
+		return err
+	}
+	_, err := sess.Write(buf.Bytes())
+	return err
 }
 
 func (s *session) getState() state {
@@ -135,4 +146,9 @@ func (s *session) setUser(user user) {
 
 func (s *session) getLastKeepaliveTime() int64 {
 	return atomic.LoadInt64(&s.internal.lastKeepaliveTime)
+}
+
+type pendingSession struct {
+	uid  int64
+	meta uint32
 }

@@ -1,4 +1,4 @@
-package server
+package config
 
 import (
 	"strings"
@@ -35,7 +35,7 @@ type Config struct {
 	} `json:"limiter"`
 }
 
-func NewConfig() *Config {
+func New() *Config {
 	return &Config{}
 }
 
@@ -75,7 +75,7 @@ const defaultConfigContent = `{
 `
 
 func init() {
-	cfg := NewConfig()
+	cfg := New()
 	if err := cfg.Read(cfg, strings.NewReader(defaultConfigContent)); err != nil {
 		panic(err)
 	}

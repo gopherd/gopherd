@@ -270,7 +270,7 @@ func generateTypeAnnotation(ctx *context.Context, gen *protogen.Plugin, f *proto
 			}
 			g.P(")")
 
-			if ctx.Type.TypeRegistry != "" {
+			if ctx.Type.TypeMethod != "" {
 				g.P()
 				g.P("func init() {")
 				for _, ann := range typedAnns {
@@ -279,13 +279,13 @@ func generateTypeAnnotation(ctx *context.Context, gen *protogen.Plugin, f *proto
 					g.P("\tregistry.Register(", `"`, f.GoPackageName, `",`, constName, ", func() registry.Message { return new(", name, ") })")
 				}
 				g.P("}")
-			}
 
-			g.P()
-			for _, ann := range typedAnns {
-				name := ann.associated.oneof.message.GoIdent.GoName
-				constName := ctx.Type.ConstPrefix + name + ctx.Type.ConstSuffix
-				g.P("\tfunc (*", name, ") ", ctx.Type.TypeMethod, "() uint32 { return ", constName, " }")
+				g.P()
+				for _, ann := range typedAnns {
+					name := ann.associated.oneof.message.GoIdent.GoName
+					constName := ctx.Type.ConstPrefix + name + ctx.Type.ConstSuffix
+					g.P("\tfunc (*", name, ") ", ctx.Type.TypeMethod, "() registry.Type { return ", constName, " }")
+				}
 			}
 		}
 	}
