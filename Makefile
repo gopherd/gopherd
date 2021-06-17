@@ -24,10 +24,6 @@ endef
 .PHONY: all
 all: autogen cmd
 
-.PHONY: install
-install:
-	$(call install_target,protoc-gen-gopherd)
-
 .PHONY: autogen
 autogen: proto
 
@@ -36,7 +32,7 @@ proto:
 	$(call build_protobuf,gatepb)
 
 .PHONY: cmd
-cmd: gated
+cmd: gated protoc-gen-gopherd
 
 .PHONY: gated
 gated:
@@ -45,3 +41,7 @@ gated:
 .PHONY: protoc-gen-gopherd
 protoc-gen-gopherd:
 	$(call build_target,protoc-gen-gopherd)
+
+.PHONY: install
+install:
+	$(call install_target,protoc-gen-gopherd)

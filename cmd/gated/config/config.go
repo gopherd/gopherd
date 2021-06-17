@@ -1,11 +1,15 @@
 package config
 
 import (
-	"strings"
+	"bytes"
+	_ "embed"
 	"time"
 
 	"github.com/gopherd/doge/config"
 )
+
+//go:embed gated.conf
+var defaultConfigContent []byte
 
 // Config represents config of gated service
 type Config struct {
@@ -25,8 +29,9 @@ type Config struct {
 	TimeoutForUnauthorizedConn  int    `json:"timeout_for_unauthorized_conn"`
 	DefaultLocationForUnknownIP string `json:"default_location_for_unknown_ip"`
 	JWT                         struct {
-		Key    string `json:"key"`
-		Issuer string `json:"issuer"`
+		Filename string `json:"filename"`
+		Issuer   string `json:"issuer"`
+		KeyId    string `json:"key_id"`
 	} `json:"jwt"`
 	Limiter struct {
 		MsgInterval       int `json:"msg_interval"`
@@ -36,47 +41,14 @@ type Config struct {
 }
 
 func New() *Config {
-	return &Config{}
-}
-
-const defaultConfigContent = `{
-	core: {
-		// Unique server id
-		id: 1001,
-
-		log: {
-			// Log level, supported values: trace,debug,info,warn,error,fatal
-			level: "debug",
-			// Log prefix
-			prefix: "{{.name}}",
-			// Log writers
-			writers: [
-				"consle",
-				"file://var/log/{{.name}}.{{.id}}?suffix=.txt"
-			]
-		},
-
-		mq: {
-			name: "zeromq",
-			source: "0.0.0.0:2{{.id}}"
-		},
-
-		// Service discovery config
-		discovery: {
-			name: "redis",
-			source: "127.0.0.1:2639?key=service.discovery"
-		}
-	},
-
-	// Listening address
-	host: "0.0.0.0",
-	port: 1{{.id}}
-}
-`
-
-func init() {
-	cfg := New()
-	if err := cfg.Read(cfg, strings.NewReader(defaultConfigContent)); err != nil {
+	cfg := new(Config)
+	if err := cfg.Read(cfg, bytes.NewReader(defaultConfigContent)); err != nil {
 		panic(err)
 	}
+	return cfg
+}
+
+func init() {
+	// verify default config
+	New()
 }

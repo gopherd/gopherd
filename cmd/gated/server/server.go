@@ -6,7 +6,6 @@ import (
 	"unsafe"
 
 	"github.com/gopherd/doge/erron"
-	"github.com/gopherd/doge/jwt"
 	"github.com/gopherd/doge/service"
 
 	"github.com/gopherd/gopherd/cmd/gated/config"
@@ -21,6 +20,31 @@ const (
 	kCleanDeadSessionInterval     = time.Minute
 	kUserInfoTTLRatio             = 750 // 750/1000
 )
+
+type option struct {
+	newFrontend func(frontend.Service) frontend.Component
+	newBackend  func(backend.Service) backend.Component
+}
+
+func (opt *option) apply(options []Option) {
+	for i := range options {
+		options[i](opt)
+	}
+}
+
+type Option func(*option)
+
+func WithFrontend(newFrontend func(frontend.Service) frontend.Component) Option {
+	return func(opt *option) {
+		opt.newFrontend = newFrontend
+	}
+}
+
+func WithBackend(newBackend func(backend.Service) backend.Component) Option {
+	return func(opt *option) {
+		opt.newBackend = newBackend
+	}
+}
 
 type server struct {
 	*service.BaseService
@@ -38,8 +62,7 @@ type server struct {
 }
 
 // New creates gated service
-func New() service.Service {
-	cfg := config.New()
+func New(cfg *config.Config, options ...Option) service.Service {
 	s := &server{
 		BaseService: service.NewBaseService(cfg),
 		quit:        make(chan struct{}),
@@ -48,8 +71,17 @@ func New() service.Service {
 
 	s.internal.config = cfg
 
-	s.components.frontend = s.AddComponent(frontend.NewComponent(s)).(module.Frontend)
-	s.components.backend = s.AddComponent(backend.NewComponent(s)).(module.Backend)
+	var opt option
+	opt.apply(options)
+	if opt.newFrontend == nil {
+		opt.newFrontend = frontend.NewComponent
+	}
+	if opt.newBackend == nil {
+		opt.newBackend = backend.NewComponent
+	}
+
+	s.components.frontend = s.AddComponent(opt.newFrontend(s)).(module.Frontend)
+	s.components.backend = s.AddComponent(opt.newBackend(s)).(module.Backend)
 
 	return s
 }
@@ -67,9 +99,6 @@ func (s *server) SetConfig(cfg unsafe.Pointer) {
 // Init overrides BaseService Init method
 func (s *server) Init() error {
 	if err := s.BaseService.Init(); err != nil {
-		return erron.Throw(err)
-	}
-	if err := jwt.LoadKeyFile(s.GetConfig().JWT.Key); err != nil {
 		return erron.Throw(err)
 	}
 	return nil

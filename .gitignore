@@ -22,3 +22,7 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Auto-generated
+/etc/ec256.p8
+/etc/ec256.pub.p8

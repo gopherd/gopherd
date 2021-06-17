@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/gopherd/doge/erron"
+	"github.com/gopherd/doge/jwt"
 	"github.com/gopherd/doge/net/httputil"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service/component"
@@ -29,7 +30,8 @@ func NewComponent(service Service) *frontend {
 // frontend component
 type frontend struct {
 	*component.BaseComponent
-	service Service
+	service  Service
+	verifier *jwt.Verifier
 
 	maxConns      int
 	maxConnsPerIP int
@@ -43,7 +45,7 @@ type frontend struct {
 
 func newFrontend(service Service) *frontend {
 	return &frontend{
-		BaseComponent: component.NewBaseComponent("sessions"),
+		BaseComponent: component.NewBaseComponent("frontend"),
 		service:       service,
 		sessions:      make(map[int64]*session),
 		uid2sid:       make(map[int64]int64),
@@ -59,6 +61,12 @@ func (f *frontend) Init() error {
 	cfg := f.service.GetConfig()
 	f.maxConns = cfg.MaxConns
 	f.maxConnsPerIP = cfg.MaxConnsPerIP
+
+	if verifier, err := jwt.NewVerifier(cfg.JWT.Filename, cfg.JWT.KeyId); err != nil {
+		return erron.Throw(err)
+	} else {
+		f.verifier = verifier
+	}
 
 	if cfg.Net.Port <= 0 {
 		return erron.Throwf("invalid port: %d", cfg.Net.Port)
@@ -275,10 +283,18 @@ func (f *frontend) onLogin(sess *session, req *gatepb.Login) error {
 	return nil
 }
 
-func (f *frontend) Broadcast(content []byte) error {
+func (f *frontend) BroadcastAll(content []byte) error {
 	return nil
 }
 
-func (f *frontend) BroadcastTo(uids []int64, content []byte) error {
+func (f *frontend) Broadcast(uids []int64, content []byte) error {
+	return nil
+}
+
+func (f *frontend) Send(uid int64, content []byte) error {
+	return nil
+}
+
+func (f *frontend) Kickout(uid int64, reason gatepb.KickoutReason) error {
 	return nil
 }
