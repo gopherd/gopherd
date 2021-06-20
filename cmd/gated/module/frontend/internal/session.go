@@ -77,7 +77,7 @@ func (s *session) keepalive() {
 
 // OnReady implements netutil.SessionEventHandler OnReady method
 func (s *session) OnReady() {
-	log.Trace("session %d ready", s.id)
+	log.Trace().Int64("sid", s.id).Print("session ready")
 	s.keepalive()
 	s.handler.onReady(s)
 }
@@ -85,9 +85,12 @@ func (s *session) OnReady() {
 // OnClose implements netutil.SessionEventHandler OnClose method
 func (s *session) OnClose(err error) {
 	if !netutil.IsNetworkError(err) {
-		log.Warn("session %d closed because of error: %v", s.id, err)
+		log.Warn().
+			Int64("sid", s.id).
+			Error("error", err).
+			Print("session closed because of an error occurred")
 	} else {
-		log.Debug("session %d closed", s.id)
+		log.Debug().Int64("sid", s.id).Print("session closed")
 	}
 	s.handler.onClose(s, err)
 }
@@ -112,7 +115,7 @@ func (s *session) Write(data []byte) (int, error) {
 
 // Close closes the session
 func (s *session) Close() error {
-	log.Debug("close session %d", s.id)
+	log.Debug().Int64("sid", s.id).Print("closing session")
 	s.setState(stateClosing)
 	return s.internal.session.Close()
 }

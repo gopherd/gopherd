@@ -1,9 +1,12 @@
 package module
 
 import (
+	"github.com/gopherd/doge/jwt"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/gopherd/proto/gatepb"
 )
+
+const UsersTable = "gated/users"
 
 // Frontend managers client sessions
 type Frontend interface {
@@ -16,6 +19,6 @@ type Frontend interface {
 // Backend connects to backend servers
 type Backend interface {
 	Forward(uid int64, typ proto.Type, body proto.Body) error
-	Login(uid int64, req *gatepb.Login) error
-	Logout(uid int64, req *gatepb.Logout) error
+	Login(uid int64, claims *jwt.Claims, userdata []byte) error
+	Logout(uid int64) error
 }

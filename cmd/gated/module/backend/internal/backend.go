@@ -1,11 +1,11 @@
 package internal
 
 import (
+	"github.com/gopherd/doge/jwt"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service/component"
 	"github.com/gopherd/gopherd/cmd/gated/config"
 	"github.com/gopherd/gopherd/cmd/gated/module"
-	"github.com/gopherd/gopherd/proto/gatepb"
 )
 
 type Service interface {
@@ -33,10 +33,10 @@ func (b *backend) Forward(uid int64, typ proto.Type, body proto.Body) error {
 	return nil
 }
 
-func (b *backend) Login(uid int64, req *gatepb.Login) error {
+func (b *backend) Login(uid int64, claims *jwt.Claims, userdata []byte) error {
 	return nil
 }
 
-func (b *backend) Logout(uid int64, req *gatepb.Logout) error {
+func (b *backend) Logout(uid int64) error {
 	return nil
 }
