@@ -18,7 +18,6 @@ import (
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service/component"
 	"github.com/gopherd/doge/service/discovery"
-	"github.com/mkideal/log"
 
 	"github.com/gopherd/gopherd/cmd/gated/config"
 	"github.com/gopherd/gopherd/cmd/gated/module"
@@ -95,7 +94,7 @@ func (f *frontend) Init() error {
 	}
 	f.http.server = server
 	f.http.listener = listener
-	log.Info().String("addr", addr).Print("http server listening")
+	f.Logger().Info().String("addr", addr).Print("http server listening")
 
 	return nil
 }
@@ -201,7 +200,7 @@ func (f *frontend) clean(ttl, now int64) {
 	defer f.mutex.RUnlock()
 	for sid, s := range f.sessions {
 		if s.getLastKeepaliveTime()+ttl < now {
-			log.Debug().Int64("sid", sid).Print("clean dead session")
+			f.Logger().Debug().Int64("sid", sid).Print("clean dead session")
 			s.Close()
 		}
 	}
@@ -213,7 +212,7 @@ func (f *frontend) broadcast(data []byte, ttl, now int64) {
 	for sid, s := range f.sessions {
 		if s.getLastKeepaliveTime()+ttl > now {
 			if _, err := s.Write(data); err != nil {
-				log.Warn().
+				f.Logger().Warn().
 					Int64("sid", sid).
 					Error("error", err).
 					Int("bytes", len(data)).
@@ -229,11 +228,11 @@ func (f *frontend) allocSessionId() int64 {
 
 func (f *frontend) onOpen(ip string, conn net.Conn) {
 	sid := f.allocSessionId()
-	log.Debug().
+	f.Logger().Debug().
 		Int64("sid", sid).
 		String("ip", ip).
 		Print("session connected")
-	sess := newSession(sid, ip, conn, f)
+	sess := newSession(f.Logger(), sid, ip, conn, f)
 	// Blocked here
 	sess.serve()
 }
@@ -242,12 +241,12 @@ func (f *frontend) onOpen(ip string, conn net.Conn) {
 func (f *frontend) onReady(sess *session) {
 	n, ok := f.add(sess)
 	if !ok {
-		log.Warn().
+		f.Logger().Warn().
 			Int64("sid", sess.id).
-			Int("sesssions", n).
+			Int("sessions", n).
 			Print("add session failed")
 	} else {
-		log.Debug().
+		f.Logger().Debug().
 			Int64("sid", sess.id).
 			Int("sessions", n).
 			Print("session ready")
@@ -256,7 +255,7 @@ func (f *frontend) onReady(sess *session) {
 
 // onClose implements handler onClose method
 func (f *frontend) onClose(sess *session, err error) {
-	log.Debug().Int64("sid", sess.id).Print("session closed")
+	f.Logger().Debug().Int64("sid", sess.id).Print("session closed")
 	f.remove(sess.id)
 }
 
@@ -264,14 +263,14 @@ func (f *frontend) onClose(sess *session, err error) {
 func (f *frontend) onMessage(sess *session, body proto.Body) error {
 	n, typ, err := proto.PeekType(body)
 	if err != nil {
-		log.Debug().
+		f.Logger().Debug().
 			Int64("sid", sess.id).
 			Int("bytes", body.Len()).
 			Error("error", err).
 			Print("session received an untyped message")
 		return err
 	} else {
-		log.Trace().
+		f.Logger().Trace().
 			Int64("sid", sess.id).
 			Int("bytes", body.Len()).
 			Int("type", int(typ)).
@@ -313,7 +312,7 @@ func (f *frontend) unmarshal(discard int, typ proto.Type, body proto.Body) (prot
 		return nil, err
 	}
 	if err := buf.Unmarshal(m); err != nil {
-		log.Warn().
+		f.Logger().Warn().
 			Int("type", int(typ)).
 			String("name", proto.Nameof(m)).
 			Error("error", err).
@@ -336,7 +335,7 @@ func (f *frontend) setUserLogged(uid, sid int64) (bool, error) {
 		if discovery.IsExist(err) {
 			return false, nil
 		}
-		log.Warn().
+		f.Logger().Warn().
 			Int64("uid", uid).
 			Error("error", err).
 			Print("register user error")
@@ -366,7 +365,7 @@ func (f *frontend) login(sess *session, req *gatepb.Login) error {
 	if ok, err := f.setUserLogged(uid, sid); err != nil {
 		return err
 	} else if !ok {
-		// add to pendings
+		// TODO: add to pendings
 		return nil
 	}
 	return f.service.Backend().Login(uid, claims, req.Userdata)
@@ -405,9 +404,16 @@ func (f *frontend) Broadcast(uids []int64, content []byte) error {
 func (f *frontend) Send(uid int64, content []byte) error {
 	sess := f.find(uid)
 	if sess == nil {
-		log.Debug().Int64("uid", uid).Print("user session not found by uid")
+		f.Logger().Debug().
+			Int64("uid", uid).
+			Print("send to user failed, session not found by uid")
 		return nil
 	}
+	f.Logger().Trace().
+		Int64("uid", uid).
+		Int64("sid", sess.id).
+		Int("bytes", len(content)).
+		Print("send to user session")
 	sess.Write(content)
 	return nil
 }
@@ -416,9 +422,16 @@ func (f *frontend) Send(uid int64, content []byte) error {
 func (f *frontend) Kickout(uid int64, reason gatepb.KickoutReason) error {
 	sess := f.find(uid)
 	if sess == nil {
-		log.Debug().Int64("uid", uid).Print("user session not found by uid")
+		f.Logger().Debug().
+			Int64("uid", uid).
+			Print("user session not found by uid")
 		return nil
 	}
+	f.Logger().Debug().
+		Int64("uid", uid).
+		Int64("sid", sess.id).
+		Any("reason", reason).
+		Print("kickout user")
 	kickout := &gatepb.Kickout{
 		Reason: int32(reason),
 	}

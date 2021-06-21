@@ -2,6 +2,7 @@ package internal
 
 import (
 	"net"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -41,6 +42,7 @@ type session struct {
 	ip        string
 	createdAt int64
 	handler   handler
+	logger    log.Prefix
 
 	// private fields of the session
 	internal struct {
@@ -59,12 +61,13 @@ type session struct {
 	}
 }
 
-func newSession(id int64, ip string, conn net.Conn, handler handler) *session {
+func newSession(prefix log.Prefix, id int64, ip string, conn net.Conn, handler handler) *session {
 	s := &session{
 		id:        id,
 		ip:        ip,
 		createdAt: time.Now().UnixNano() / 1e6,
 		handler:   handler,
+		logger:    prefix.Prefix("s/" + strconv.FormatInt(id, 10)),
 	}
 	s.internal.state = int32(stateCreated)
 	s.internal.session = netutil.NewSession(conn, s)
@@ -77,7 +80,7 @@ func (s *session) keepalive() {
 
 // OnReady implements netutil.SessionEventHandler OnReady method
 func (s *session) OnReady() {
-	log.Trace().Int64("sid", s.id).Print("session ready")
+	s.logger.Trace().Int64("sid", s.id).Print("session ready")
 	s.keepalive()
 	s.handler.onReady(s)
 }
@@ -85,12 +88,12 @@ func (s *session) OnReady() {
 // OnClose implements netutil.SessionEventHandler OnClose method
 func (s *session) OnClose(err error) {
 	if !netutil.IsNetworkError(err) {
-		log.Warn().
+		s.logger.Warn().
 			Int64("sid", s.id).
 			Error("error", err).
 			Print("session closed because of an error occurred")
 	} else {
-		log.Debug().Int64("sid", s.id).Print("session closed")
+		s.logger.Debug().Int64("sid", s.id).Print("session closed")
 	}
 	s.handler.onClose(s, err)
 }
@@ -115,7 +118,7 @@ func (s *session) Write(data []byte) (int, error) {
 
 // Close closes the session
 func (s *session) Close() error {
-	log.Debug().Int64("sid", s.id).Print("closing session")
+	s.logger.Debug().Int64("sid", s.id).Print("closing session")
 	s.setState(stateClosing)
 	return s.internal.session.Close()
 }
