@@ -3,8 +3,8 @@ package backend
 import (
 	"github.com/gopherd/doge/service/component"
 
+	"github.com/gopherd/gopherd/cmd/gated/backend/internal"
 	"github.com/gopherd/gopherd/cmd/gated/module"
-	"github.com/gopherd/gopherd/cmd/gated/module/backend/internal"
 )
 
 // Component declares backend component interface

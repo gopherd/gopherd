@@ -18,10 +18,11 @@ import (
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service/component"
 	"github.com/gopherd/doge/service/discovery"
+	"github.com/mkideal/log"
+
 	"github.com/gopherd/gopherd/cmd/gated/config"
 	"github.com/gopherd/gopherd/cmd/gated/module"
 	"github.com/gopherd/gopherd/proto/gatepb"
-	"github.com/mkideal/log"
 )
 
 type Service interface {

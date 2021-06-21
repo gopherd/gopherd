@@ -3,8 +3,8 @@ package frontend
 import (
 	"github.com/gopherd/doge/service/component"
 
+	"github.com/gopherd/gopherd/cmd/gated/frontend/internal"
 	"github.com/gopherd/gopherd/cmd/gated/module"
-	"github.com/gopherd/gopherd/cmd/gated/module/frontend/internal"
 )
 
 // Component declares frontend component interface

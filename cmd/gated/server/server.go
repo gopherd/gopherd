@@ -8,10 +8,10 @@ import (
 	"github.com/gopherd/doge/erron"
 	"github.com/gopherd/doge/service"
 
+	"github.com/gopherd/gopherd/cmd/gated/backend"
 	"github.com/gopherd/gopherd/cmd/gated/config"
+	"github.com/gopherd/gopherd/cmd/gated/frontend"
 	"github.com/gopherd/gopherd/cmd/gated/module"
-	"github.com/gopherd/gopherd/cmd/gated/module/backend"
-	"github.com/gopherd/gopherd/cmd/gated/module/frontend"
 )
 
 const (

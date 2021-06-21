@@ -4,6 +4,7 @@ import (
 	"github.com/gopherd/doge/jwt"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service/component"
+
 	"github.com/gopherd/gopherd/cmd/gated/config"
 	"github.com/gopherd/gopherd/cmd/gated/module"
 )
