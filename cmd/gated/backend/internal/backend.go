@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"github.com/gopherd/doge/jwt"
+	"github.com/gopherd/jwt"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service/component"
 

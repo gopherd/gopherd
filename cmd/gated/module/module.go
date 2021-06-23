@@ -1,9 +1,9 @@
 package module
 
 import (
-	"github.com/gopherd/doge/jwt"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/gopherd/proto/gatepb"
+	"github.com/gopherd/jwt"
 )
 
 const UsersTable = "gated/users"

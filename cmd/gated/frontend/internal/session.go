@@ -6,10 +6,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gopherd/doge/jwt"
+	"github.com/gopherd/jwt"
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/doge/proto"
-	"github.com/mkideal/log"
+	"github.com/gopherd/doge/log"
 )
 
 // userdata of session

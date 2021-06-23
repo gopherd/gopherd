@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gopherd/doge/erron"
-	"github.com/gopherd/doge/jwt"
+	"github.com/gopherd/jwt"
 	"github.com/gopherd/doge/net/httputil"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service/component"
