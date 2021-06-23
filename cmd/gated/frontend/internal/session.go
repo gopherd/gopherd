@@ -9,7 +9,7 @@ import (
 	"github.com/gopherd/jwt"
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/doge/proto"
-	"github.com/gopherd/doge/log"
+	"github.com/gopherd/log"
 )
 
 // userdata of session
