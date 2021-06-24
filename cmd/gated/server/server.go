@@ -86,8 +86,8 @@ func New(cfg *config.Config, options ...Option) service.Service {
 	return s
 }
 
-// GetConfig atomically gets the config
-func (s *server) GetConfig() *config.Config {
+// Config atomically gets the config
+func (s *server) Config() *config.Config {
 	return (*config.Config)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&s.internal.config))))
 }
 

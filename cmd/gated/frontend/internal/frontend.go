@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/gopherd/doge/erron"
-	"github.com/gopherd/jwt"
 	"github.com/gopherd/doge/net/httputil"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service/component"
 	"github.com/gopherd/doge/service/discovery"
+	"github.com/gopherd/jwt"
 
 	"github.com/gopherd/gopherd/cmd/gated/config"
 	"github.com/gopherd/gopherd/cmd/gated/module"
@@ -26,7 +26,7 @@ import (
 
 type Service interface {
 	ID() int64
-	GetConfig() *config.Config
+	Config() *config.Config
 	Backend() module.Backend
 	Discovery() discovery.Discovery
 }
@@ -74,7 +74,7 @@ func (f *frontend) Init() error {
 	if err := f.BaseComponent.Init(); err != nil {
 		return err
 	}
-	cfg := f.service.GetConfig()
+	cfg := f.service.Config()
 	f.maxConns = cfg.MaxConns
 	f.maxConnsPerIP = cfg.MaxConnsPerIP
 
@@ -279,7 +279,7 @@ func (f *frontend) onMessage(sess *session, body proto.Body) error {
 	var m proto.Message
 	switch typ {
 	case gatepb.PingType:
-		if f.service.GetConfig().ForwardPing {
+		if f.service.Config().ForwardPing {
 			err = f.forward(sess, typ, body)
 		} else if m, err = f.unmarshal(n, typ, body); err == nil {
 			err = f.ping(sess, m.(*gatepb.Ping))
@@ -324,7 +324,7 @@ func (f *frontend) unmarshal(discard int, typ proto.Type, body proto.Body) (prot
 
 func (f *frontend) setUserLogged(uid, sid int64) (bool, error) {
 	var (
-		name    = path.Join(f.service.GetConfig().Core.Project, module.UsersTable)
+		name    = path.Join(f.service.Config().Core.Project, module.UsersTable)
 		content = make([]byte, 0, 32)
 	)
 	content = strconv.AppendInt(content, f.service.ID(), 10)
@@ -356,7 +356,7 @@ func (f *frontend) ping(sess *session, req *gatepb.Ping) error {
 }
 
 func (f *frontend) login(sess *session, req *gatepb.Login) error {
-	cfg := f.service.GetConfig()
+	cfg := f.service.Config()
 	claims, err := f.verifier.Verify(cfg.JWT.Issuer, req.Token)
 	if err != nil {
 		return err
