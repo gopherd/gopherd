@@ -12,13 +12,9 @@ define build_target
 	@${GOBUILD} -o ${TARGET_DIR}/$(1) ./cmd/$(1)/
 endef
 
-define install_target
-	@echo "Installing $(1) ..."
-	@go install ./cmd/$(1)/
-endef
-
 define build_protobuf
-	protoc --gopherd_out=. proto/protobuf/$(1)/*.proto
+	@echo Compiling proto/protobuf/$(1)/*.proto ...
+	@protoc --gopherd_out=. proto/protobuf/$(1)/*.proto
 endef
 
 .PHONY: all
@@ -31,17 +27,15 @@ autogen: proto
 proto:
 	$(call build_protobuf,gatepb)
 
+.PHONY: lint
+lint:
+	@echo "Linting codes ..."
+	@go vet ./...
+	@loglint ./...
+
 .PHONY: cmd
-cmd: gated protoc-gen-gopherd
+cmd: lint gated
 
 .PHONY: gated
 gated:
 	$(call build_target,gated)
-
-.PHONY: protoc-gen-gopherd
-protoc-gen-gopherd:
-	$(call build_target,protoc-gen-gopherd)
-
-.PHONY: install
-install:
-	$(call install_target,protoc-gen-gopherd)
