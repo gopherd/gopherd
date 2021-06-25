@@ -26,3 +26,4 @@
 # Auto-generated
 /etc/ec256.p8
 /etc/ec256.pub.p8
+/var/
