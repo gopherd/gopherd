@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gopherd/jwt"
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/doge/proto"
+	"github.com/gopherd/jwt"
 	"github.com/gopherd/log"
 )
 
@@ -67,7 +67,7 @@ func newSession(prefix log.Prefix, id int64, ip string, conn net.Conn, handler h
 		ip:        ip,
 		createdAt: time.Now().UnixNano() / 1e6,
 		handler:   handler,
-		logger:    prefix.Prefix("s/" + strconv.FormatInt(id, 10)),
+		logger:    prefix.Prefix("sid/" + strconv.FormatInt(id, 10)),
 	}
 	s.internal.state = int32(stateCreated)
 	s.internal.session = netutil.NewSession(conn, s)
@@ -80,7 +80,7 @@ func (s *session) keepalive() {
 
 // OnReady implements netutil.SessionEventHandler OnReady method
 func (s *session) OnReady() {
-	s.logger.Trace().Int64("sid", s.id).Print("session ready")
+	s.logger.Trace().Print("session ready")
 	s.keepalive()
 	s.handler.onReady(s)
 }
@@ -89,11 +89,10 @@ func (s *session) OnReady() {
 func (s *session) OnClose(err error) {
 	if !netutil.IsNetworkError(err) {
 		s.logger.Warn().
-			Int64("sid", s.id).
 			Error("error", err).
 			Print("session closed because of an error occurred")
 	} else {
-		s.logger.Debug().Int64("sid", s.id).Print("session closed")
+		s.logger.Debug().Print("session closed")
 	}
 	s.handler.onClose(s, err)
 }
@@ -118,7 +117,7 @@ func (s *session) Write(data []byte) (int, error) {
 
 // Close closes the session
 func (s *session) Close() error {
-	s.logger.Debug().Int64("sid", s.id).Print("closing session")
+	s.logger.Debug().Print("close session")
 	s.setState(stateClosing)
 	return s.internal.session.Close()
 }

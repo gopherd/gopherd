@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"path"
 	"strconv"
 	"sync"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/gopherd/doge/erron"
 	"github.com/gopherd/doge/net/httputil"
+	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service/component"
 	"github.com/gopherd/doge/service/discovery"
@@ -42,10 +42,8 @@ type frontend struct {
 	service  Service
 	verifier *jwt.Verifier
 
-	http struct {
-		server   *http.Server
-		listener net.Listener
-	}
+	server   interface{ Serve(net.Listener) error }
+	listener net.Listener
 
 	maxConns      int
 	maxConnsPerIP int
@@ -87,14 +85,27 @@ func (f *frontend) Init() error {
 	if cfg.Net.Port <= 0 {
 		return erron.Throwf("invalid port: %d", cfg.Net.Port)
 	}
-	addr := fmt.Sprintf("%s:%d", cfg.Net.Host, cfg.Net.Port)
-	server, listener, err := httputil.ListenWebsocket(addr, "/", f.onOpen, time.Minute*3)
-	if err != nil {
-		return erron.Throw(err)
+	addr := fmt.Sprintf("%s:%d", cfg.Net.Bind, cfg.Net.Port)
+	keepalive := time.Duration(cfg.Net.Keepalive) * time.Second
+	if cfg.Net.Protocol == "tcp" {
+		server, listener, err := netutil.ListenTCP(addr, f.onOpen, keepalive)
+		if err != nil {
+			return erron.Throw(err)
+		}
+		f.server = server
+		f.listener = listener
+	} else {
+		server, listener, err := httputil.ListenWebsocket(addr, "/", f.onOpen, keepalive)
+		if err != nil {
+			return erron.Throw(err)
+		}
+		f.server = server
+		f.listener = listener
 	}
-	f.http.server = server
-	f.http.listener = listener
-	f.Logger().Info().String("addr", addr).Print("http server listening")
+	f.Logger().Info().
+		String("protocol", cfg.Net.Protocol).
+		String("addr", addr).
+		Print("listening")
 
 	return nil
 }
@@ -102,7 +113,7 @@ func (f *frontend) Init() error {
 // Start overrides BaseComponent Start method
 func (f *frontend) Start() {
 	f.BaseComponent.Start()
-	go f.http.server.Serve(f.http.listener)
+	go f.server.Serve(f.listener)
 }
 
 // Shutdown overrides BaseComponent Shutdown method
@@ -129,7 +140,7 @@ func (f *frontend) add(s *session) (n int, ok bool) {
 	defer f.mutex.Unlock()
 	f.sessions[s.id] = s
 	n = len(f.sessions)
-	if n < f.maxConns {
+	if f.maxConns == 0 || n < f.maxConns {
 		ok = true
 	} else {
 		s.setState(stateOverflow)

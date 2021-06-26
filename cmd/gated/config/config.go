@@ -3,7 +3,6 @@ package config
 import (
 	"bytes"
 	_ "embed"
-	"time"
 
 	"github.com/gopherd/doge/config"
 )
@@ -16,12 +15,14 @@ type Config struct {
 	config.BaseConfig
 
 	Net struct {
-		Host        string        `json:"host"`
-		Port        int           `json:"port"`
-		Keepalive   time.Duration `json:"keepalive"`
-		ReadTimeout time.Duration `json:"read_timeout"`
+		// Protocol: websocket/tcp
+		Protocol    string `json:"protocol"`
+		Bind        string `json:"bind"`
+		Port        int    `json:"port"`
+		Keepalive   int    `json:"keepalive"`    // seconds
+		ReadTimeout int    `json:"read_timeout"` // seconds
 	} `json:"net"`
-	Keepalive                   int64  `json:"keepalive"`
+	Keepalive                   int    `json:"keepalive"`
 	ForwardPing                 bool   `json:"forward_ping"`
 	UserTTL                     int    `json:"user_ttl"`
 	MaxConns                    int    `json:"max_conns"`

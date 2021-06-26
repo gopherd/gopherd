@@ -29,7 +29,7 @@ proto:
 
 .PHONY: lint
 lint:
-	@echo "Linting codes ..."
+	@echo "Linting ./..."
 	@go vet ./...
 	@loglint ./...
 
