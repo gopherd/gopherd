@@ -64,10 +64,10 @@ type server struct {
 // New creates gated service
 func New(cfg *config.Config, options ...Option) service.Service {
 	s := &server{
-		BaseService: service.NewBaseService(cfg),
-		quit:        make(chan struct{}),
-		wait:        make(chan struct{}),
+		quit: make(chan struct{}),
+		wait: make(chan struct{}),
 	}
+	s.BaseService = service.NewBaseService(s, cfg)
 
 	s.internal.config = cfg
 
@@ -86,13 +86,13 @@ func New(cfg *config.Config, options ...Option) service.Service {
 	return s
 }
 
-// Config atomically gets the config
+// Config atomically loads the config
 func (s *server) Config() *config.Config {
 	return (*config.Config)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&s.internal.config))))
 }
 
-// SetConfig atomically updates the config
-func (s *server) SetConfig(cfg unsafe.Pointer) {
+// RewriteConfig implements Service RewriteConfig method to atomically stores the config
+func (s *server) RewriteConfig(cfg unsafe.Pointer) {
 	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&s.internal.config)), cfg)
 }
 

@@ -40,6 +40,11 @@ type Config struct {
 	} `json:"limiter"`
 }
 
+// Default implements config.Configurator Default method
+func (*Config) Default() config.Configurator {
+	return New()
+}
+
 func New() *Config {
 	cfg := new(Config)
 	if err := cfg.Read(cfg, bytes.NewReader(defaultConfigContent)); err != nil {
