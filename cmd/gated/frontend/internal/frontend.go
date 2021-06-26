@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/textproto"
 	"path"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -226,7 +228,7 @@ func (f *frontend) broadcast(data []byte, ttl, now int64) {
 				f.Logger().Warn().
 					Int64("sid", sid).
 					Error("error", err).
-					Int("bytes", len(data)).
+					Int("size", len(data)).
 					Print("broadcast to session error")
 			}
 		}
@@ -271,64 +273,98 @@ func (f *frontend) onClose(sess *session, err error) {
 }
 
 // onMessage implements handler onMessage method
-func (f *frontend) onMessage(sess *session, body proto.Body) error {
-	n, typ, err := proto.PeekType(body)
-	if err != nil {
-		f.Logger().Debug().
-			Int64("sid", sess.id).
-			Int("bytes", body.Len()).
-			Error("error", err).
-			Print("session received an untyped message")
-		return err
-	} else {
-		f.Logger().Trace().
-			Int64("sid", sess.id).
-			Int("bytes", body.Len()).
-			Int("type", int(typ)).
-			Print("session received a typed message")
-	}
-	var m proto.Message
+func (f *frontend) onMessage(sess *session, typ proto.Type, body proto.Body) error {
+	f.Logger().Trace().
+		Int64("sid", sess.id).
+		Int("size", body.Len()).
+		Int("type", int(typ)).
+		Print("session received a typed message")
+	var (
+		m   proto.Message
+		err error
+	)
 	switch typ {
 	case gatepb.PingType:
 		if f.service.Config().ForwardPing {
 			err = f.forward(sess, typ, body)
-		} else if m, err = f.unmarshal(n, typ, body); err == nil {
+		} else if m, err = f.unmarshal(typ, body); err == nil {
 			err = f.ping(sess, m.(*gatepb.Ping))
 		}
 	case gatepb.LoginType:
-		if m, err = f.unmarshal(n, typ, body); err == nil {
+		if m, err = f.unmarshal(typ, body); err == nil {
 			err = f.login(sess, m.(*gatepb.Login))
 		}
 	case gatepb.LogoutType:
-		if m, err = f.unmarshal(n, typ, body); err == nil {
+		if m, err = f.unmarshal(typ, body); err == nil {
 			err = f.logout(sess, m.(*gatepb.Logout))
 		}
 	default:
 		err = f.forward(sess, typ, body)
 	}
+	if err != nil {
+		f.Logger().Warn().
+			Int64("sid", sess.id).
+			Int("type", int(typ)).
+			Error("error", err).
+			Print("session handle message error")
+	}
 	return err
 }
 
-func (f *frontend) unmarshal(discard int, typ proto.Type, body proto.Body) (proto.Message, error) {
-	if _, err := body.Discard(discard); err != nil {
-		return nil, err
+func (f *frontend) onTextMessage(sess *session, reader *textproto.Reader) error {
+	cmd, err := reader.ReadLine()
+	if err != nil {
+		return err
 	}
+	cmd = strings.TrimSpace(cmd)
+	f.Logger().Info().
+		String("cmd", cmd).
+		Print("read a text message")
+	var arg string
+	i := strings.Index(cmd, " ")
+	if i > 0 {
+		arg = cmd[i+1:]
+		cmd = cmd[:i]
+	}
+	cmd = strings.ToUpper(cmd)
+	switch cmd {
+	case "PING":
+		if arg == "" {
+			sess.sendTextResponse("pong")
+		} else {
+			sess.sendTextResponse("pong " + arg)
+		}
+	default:
+		sess.sendTextResponse("unknown command")
+	}
+	return nil
+}
+
+func (f *frontend) unmarshal(typ proto.Type, body proto.Body) (proto.Message, error) {
 	m := proto.New(typ)
 	if m == nil {
 		return nil, proto.ErrUnrecognizedType
 	}
-	buf := proto.AllocBuffer()
-	defer proto.FreeBuffer(buf)
-	if _, err := io.CopyN(buf, body, int64(body.Len())); err != nil {
-		return nil, err
-	}
-	if err := buf.Unmarshal(m); err != nil {
-		f.Logger().Warn().
-			Int("type", int(typ)).
-			String("name", proto.Nameof(m)).
-			Error("error", err).
-			Print("unmarshal typed message error")
-		return nil, err
+	if size := body.Len(); size > 0 {
+		buf := proto.AllocBuffer()
+		defer proto.FreeBuffer(buf)
+		if _, err := io.CopyN(buf, body, int64(body.Len())); err != nil {
+			f.Logger().Warn().
+				Int("type", int(typ)).
+				Int("size", int(size)).
+				String("name", proto.Nameof(m)).
+				Error("error", err).
+				Print("read message body error")
+			return nil, err
+		}
+		if err := buf.Unmarshal(m); err != nil {
+			f.Logger().Warn().
+				Int("type", int(typ)).
+				String("name", proto.Nameof(m)).
+				Error("error", err).
+				Print("unmarshal typed message error")
+			return nil, err
+		}
 	}
 	return m, nil
 }
@@ -360,6 +396,10 @@ func (f *frontend) forward(sess *session, typ proto.Type, body proto.Body) error
 }
 
 func (f *frontend) ping(sess *session, req *gatepb.Ping) error {
+	f.Logger().Debug().
+		Int64("sid", sess.id).
+		String("content", req.Content).
+		Print("received ping message")
 	pong := &gatepb.Pong{
 		Content: req.Content,
 	}
@@ -423,7 +463,7 @@ func (f *frontend) Send(uid int64, content []byte) error {
 	f.Logger().Trace().
 		Int64("uid", uid).
 		Int64("sid", sess.id).
-		Int("bytes", len(content)).
+		Int("size", len(content)).
 		Print("send to user session")
 	sess.Write(content)
 	return nil

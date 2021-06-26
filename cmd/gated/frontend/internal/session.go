@@ -2,6 +2,7 @@ package internal
 
 import (
 	"net"
+	"net/textproto"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -33,7 +34,8 @@ const (
 type handler interface {
 	onReady(*session)
 	onClose(*session, error)
-	onMessage(*session, proto.Body) error
+	onMessage(*session, proto.Type, proto.Body) error
+	onTextMessage(*session, *textproto.Reader) error
 }
 
 // session holds a context for each connection
@@ -98,10 +100,15 @@ func (s *session) OnClose(err error) {
 }
 
 // OnMessage implements netutil.SessionEventHandler OnMessage method
-func (s *session) OnMessage(body proto.Body) error {
+func (s *session) OnMessage(typ proto.Type, body proto.Body) error {
 	atomic.AddInt64(&s.internal.stats.recv, int64(body.Len()))
 	s.keepalive()
-	return s.handler.onMessage(s, body)
+	return s.handler.onMessage(s, typ, body)
+}
+
+// OnMessage implements netutil.TextMessageHandler OnTextMessage method
+func (s *session) OnTextMessage(body *textproto.Reader) error {
+	return s.handler.onTextMessage(s, body)
 }
 
 // serve runs the session read/write loops
@@ -129,6 +136,19 @@ func (sess *session) send(m proto.Message) error {
 		return err
 	}
 	_, err := sess.Write(buf.Bytes())
+	return err
+}
+
+func (sess *session) sendTextResponse(text string) error {
+	_, err := sess.Write(proto.TextprotoPrefix())
+	if err != nil {
+		return err
+	}
+	_, err = sess.Write([]byte(text))
+	if err != nil {
+		return err
+	}
+	_, err = sess.Write(proto.TextprotoSuffix())
 	return err
 }
 

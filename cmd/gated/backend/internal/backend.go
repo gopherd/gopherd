@@ -53,7 +53,7 @@ func (b *backend) consume(topic string, msg []byte, err error) {
 			Print("mq consume error")
 		return
 	}
-	m, err := proto.DecodeBody(msg)
+	n, m, err := proto.Decode(msg)
 	if err != nil {
 		b.Logger().Error().
 			Int("size", len(msg)).
@@ -63,6 +63,7 @@ func (b *backend) consume(topic string, msg []byte, err error) {
 	}
 	b.Logger().Debug().
 		Int("size", len(msg)).
+		Int("read", n).
 		Int("type", int(m.Type())).
 		Print("received a message from mq")
 	switch ptc := m.(type) {

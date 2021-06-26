@@ -8,5 +8,12 @@ gopherd
 
 ## commands
 
-* gated (DOING)
-* authd (TODO)
+#### gated (DOING)
+
+test ping for gated:
+
+```
+echo -ne "\x05\x01\n\x02go" > /dev/tcp/127.0.0.1/11001
+```
+
+#### authd (TODO)
