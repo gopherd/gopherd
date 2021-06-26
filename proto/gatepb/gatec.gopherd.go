@@ -5,11 +5,11 @@ package gatepb
 import registry "github.com/gopherd/doge/proto"
 
 const (
-	PingType    = 1
-	PongType    = 2
-	LoginType   = 3
-	LogoutType  = 4
-	KickoutType = 5
+	PingType    = 131
+	PongType    = 132
+	LoginType   = 133
+	LogoutType  = 134
+	KickoutType = 135
 )
 
 func init() {

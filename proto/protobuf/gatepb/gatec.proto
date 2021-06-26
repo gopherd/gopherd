@@ -12,23 +12,23 @@ message Header {
     int32 request_id = 2;
 }
 
-// @Type(1)
+// @Type(131)
 message Ping {
     string content = 1;
 }
 
-// @Type(2)
+// @Type(132)
 message Pong {
     string content = 1;
 }
 
-// @Type(3)
+// @Type(133)
 message Login {
     string token = 1;
     bytes userdata = 2;
 }
 
-// @Type(4)
+// @Type(134)
 message Logout {
 }
 
@@ -39,7 +39,7 @@ enum KickoutReason {
 	Frozen = 3;
 }
 
-// @Type(5)
+// @Type(135)
 message Kickout {
     int32 reason = 1;
 }

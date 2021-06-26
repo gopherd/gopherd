@@ -12,19 +12,19 @@ message Session {
     bytes ip = 3;
 }
 
-// @Type(21)
+// @Type(151)
 message Request {
     Session session = 1;
     bytes content = 2;
 }
 
-// @Type(22)
+// @Type(152)
 message Response {
     int64 uid = 1;
     bytes content = 2;
 }
 
-// @Type(23)
+// @Type(153)
 message Broadcast {
     repeated int64 uids = 1;
     bytes content = 2;

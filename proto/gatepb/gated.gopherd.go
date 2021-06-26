@@ -5,9 +5,9 @@ package gatepb
 import registry "github.com/gopherd/doge/proto"
 
 const (
-	RequestType   = 21
-	ResponseType  = 22
-	BroadcastType = 23
+	RequestType   = 151
+	ResponseType  = 152
+	BroadcastType = 153
 )
 
 func init() {

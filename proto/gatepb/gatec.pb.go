@@ -128,7 +128,7 @@ func (x *Header) GetRequestId() int32 {
 	return 0
 }
 
-// @Type(1)
+// @Type(131)
 type Ping struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -176,7 +176,7 @@ func (x *Ping) GetContent() string {
 	return ""
 }
 
-// @Type(2)
+// @Type(132)
 type Pong struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -224,7 +224,7 @@ func (x *Pong) GetContent() string {
 	return ""
 }
 
-// @Type(3)
+// @Type(133)
 type Login struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -280,7 +280,7 @@ func (x *Login) GetUserdata() []byte {
 	return nil
 }
 
-// @Type(4)
+// @Type(134)
 type Logout struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -319,7 +319,7 @@ func (*Logout) Descriptor() ([]byte, []int) {
 	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{4}
 }
 
-// @Type(5)
+// @Type(135)
 type Kickout struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

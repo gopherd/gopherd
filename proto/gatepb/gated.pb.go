@@ -83,7 +83,7 @@ func (x *Session) GetIp() []byte {
 	return nil
 }
 
-// @Type(21)
+// @Type(151)
 type Request struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -139,7 +139,7 @@ func (x *Request) GetContent() []byte {
 	return nil
 }
 
-// @Type(22)
+// @Type(152)
 type Response struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -195,7 +195,7 @@ func (x *Response) GetContent() []byte {
 	return nil
 }
 
-// @Type(23)
+// @Type(153)
 type Broadcast struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

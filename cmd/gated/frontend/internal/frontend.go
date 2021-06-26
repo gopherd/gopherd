@@ -311,28 +311,38 @@ func (f *frontend) onMessage(sess *session, typ proto.Type, body proto.Body) err
 	return err
 }
 
-func (f *frontend) onTextMessage(sess *session, reader *textproto.Reader) error {
-	cmd, err := reader.ReadLine()
-	if err != nil {
-		return err
+func (f *frontend) onTextMessage(sess *session, typ proto.Type, reader *textproto.Reader) error {
+	var args []string
+	for {
+		line, err := reader.ReadLine()
+		if err != nil {
+			return err
+		}
+		line = strings.TrimSpace(line)
+		if line == "" {
+			break
+		}
+		end := line[len(line)-1] != '\\'
+		if !end {
+			line = strings.TrimSpace(line[:len(line)-1])
+		}
+		args = append(args, line)
+		if end {
+			break
+		}
 	}
-	cmd = strings.TrimSpace(cmd)
-	f.Logger().Info().
-		String("cmd", cmd).
-		Print("read a text message")
-	var arg string
-	i := strings.Index(cmd, " ")
-	if i > 0 {
-		arg = cmd[i+1:]
-		cmd = cmd[:i]
+	if typ != '+' {
+		return sess.sendTextResponse("command should starts with +, e.g. +ping")
 	}
-	cmd = strings.ToUpper(cmd)
+	if len(args) == 0 {
+		return nil
+	}
+	cmd := strings.ToUpper(args[0])
 	switch cmd {
 	case "PING":
-		if arg == "" {
-			sess.sendTextResponse("pong")
-		} else {
-			sess.sendTextResponse("pong " + arg)
+		sess.sendTextResponse("pong")
+		for i := 1; i < len(args); i++ {
+			sess.sendText(args[i])
 		}
 	default:
 		sess.sendTextResponse("unknown command")

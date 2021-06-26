@@ -30,12 +30,14 @@ const (
 	stateOverflow
 )
 
+var textprotoPrefix = []byte{'-'}
+
 // session event handler
 type handler interface {
 	onReady(*session)
 	onClose(*session, error)
 	onMessage(*session, proto.Type, proto.Body) error
-	onTextMessage(*session, *textproto.Reader) error
+	onTextMessage(*session, proto.Type, *textproto.Reader) error
 }
 
 // session holds a context for each connection
@@ -107,8 +109,8 @@ func (s *session) OnMessage(typ proto.Type, body proto.Body) error {
 }
 
 // OnMessage implements netutil.TextMessageHandler OnTextMessage method
-func (s *session) OnTextMessage(body *textproto.Reader) error {
-	return s.handler.onTextMessage(s, body)
+func (s *session) OnTextMessage(typ proto.Type, body *textproto.Reader) error {
+	return s.handler.onTextMessage(s, typ, body)
 }
 
 // serve runs the session read/write loops
@@ -140,15 +142,19 @@ func (sess *session) send(m proto.Message) error {
 }
 
 func (sess *session) sendTextResponse(text string) error {
-	_, err := sess.Write(proto.TextprotoPrefix())
+	_, err := sess.Write(textprotoPrefix)
 	if err != nil {
 		return err
 	}
-	_, err = sess.Write([]byte(text))
+	return sess.sendText(text)
+}
+
+func (sess *session) sendText(text string) error {
+	_, err := sess.Write([]byte(text))
 	if err != nil {
 		return err
 	}
-	_, err = sess.Write(proto.TextprotoSuffix())
+	_, err = sess.Write(proto.CRLF())
 	return err
 }
 
