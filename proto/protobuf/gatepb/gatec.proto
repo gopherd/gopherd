@@ -8,24 +8,24 @@ option optimize_for = LITE_RUNTIME;
 
 // optional message header
 message Header {
-    int32 version = 1;
-    int32 request_id = 2;
+	int32 version = 1;
+	int32 request_id = 2;
 }
 
 // @Type(131)
 message Ping {
-    string content = 1;
+	string content = 1;
 }
 
 // @Type(132)
 message Pong {
-    string content = 1;
+	string content = 1;
 }
 
 // @Type(133)
 message Login {
-    string token = 1;
-    bytes userdata = 2;
+	string token = 1;
+	bytes userdata = 2;
 }
 
 // @Type(134)
@@ -41,5 +41,5 @@ enum KickoutReason {
 
 // @Type(135)
 message Kickout {
-    int32 reason = 1;
+	int32 reason = 1;
 }

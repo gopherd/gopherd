@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 	"strconv"
@@ -15,6 +14,8 @@ import (
 	"github.com/gopherd/jwt"
 	"github.com/gopherd/log"
 )
+
+var crlf = []byte{'\r', '\n'}
 
 // userdata of session
 type user struct {
@@ -38,7 +39,7 @@ type handler interface {
 	onReady(*session)
 	onClose(*session, error)
 	onMessage(*session, proto.Type, proto.Body) error
-	onTextMessage(*session, proto.Type, []string) error
+	onTextMessage(*session, []string) error
 }
 
 // session holds a context for each connection
@@ -87,9 +88,13 @@ func (s *session) keepalive() {
 	atomic.StoreInt64(&s.internal.lastKeepaliveTime, time.Now().UnixNano()/1e6)
 }
 
-// OnReady implements netutil.SessionEventHandler OnReady method
-func (s *session) OnReady() {
-	s.logger.Trace().Print("session ready")
+func (s *session) ContentType() proto.ContentType {
+	return s.internal.session.ContentType()
+}
+
+// OnOpen implements netutil.SessionEventHandler OnOpen method
+func (s *session) OnOpen() {
+	s.logger.Trace().Print("session open")
 	s.keepalive()
 	s.handler.onReady(s)
 }
@@ -106,15 +111,31 @@ func (s *session) OnClose(err error) {
 	s.handler.onClose(s, err)
 }
 
+// OnHandshake implements netutil.SessionEventHandler OnHandshake method
+func (s *session) OnHandshake(contentType proto.ContentType) error {
+	switch contentType {
+	case proto.ContentTypeText, proto.ContentTypeProtobuf:
+		return nil
+	default:
+		return proto.ErrUnsupportedContentType
+	}
+}
+
 // OnMessage implements netutil.SessionEventHandler OnMessage method
 func (s *session) OnMessage(typ proto.Type, body proto.Body) error {
 	atomic.AddInt64(&s.internal.stats.recv, int64(body.Len()))
 	s.keepalive()
+	if proto.IsTextproto(s.ContentType()) {
+		return s.onTextMessage(typ, body)
+	}
 	return s.handler.onMessage(s, typ, body)
 }
 
-// OnMessage implements netutil.TextMessageHandler OnTextMessage method
-func (s *session) OnTextMessage(typ proto.Type, body *bufio.Reader) error {
+func (s *session) onTextMessage(typ proto.Type, body proto.Body) error {
+	if typ != '.' {
+		s.println("command should starts with '.', e.g. .echo hello")
+		return nil
+	}
 	lexer := shell.NewLexer(body)
 	s.cache.args = s.cache.args[:0]
 	for {
@@ -132,7 +153,10 @@ func (s *session) OnTextMessage(typ proto.Type, body *bufio.Reader) error {
 			break
 		}
 	}
-	return s.handler.onTextMessage(s, typ, s.cache.args)
+	if len(s.cache.args) == 0 {
+		return nil
+	}
+	return s.handler.onTextMessage(s, s.cache.args)
 }
 
 // serve runs the session read/write loops
@@ -156,7 +180,7 @@ func (s *session) Close() error {
 func (sess *session) send(m proto.Message) error {
 	buf := proto.AllocBuffer()
 	defer proto.FreeBuffer(buf)
-	if err := buf.Encode(m); err != nil {
+	if err := buf.Encode(m, sess.internal.session.ContentType()); err != nil {
 		return err
 	}
 	_, err := sess.Write(buf.Bytes())
@@ -172,7 +196,7 @@ func (sess *session) println(a ...interface{}) error {
 	if _, err := fmt.Fprint(sess, a...); err != nil {
 		return err
 	}
-	_, err := sess.Write(proto.CRLF())
+	_, err := sess.Write(crlf)
 	return err
 }
 

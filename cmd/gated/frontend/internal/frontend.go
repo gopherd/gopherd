@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -286,15 +287,15 @@ func (f *frontend) onMessage(sess *session, typ proto.Type, body proto.Body) err
 	case gatepb.PingType:
 		if f.service.Config().ForwardPing {
 			err = f.forward(sess, typ, body)
-		} else if m, err = f.unmarshal(typ, body); err == nil {
+		} else if m, err = f.unmarshal(sess, typ, body); err == nil {
 			err = f.ping(sess, m.(*gatepb.Ping))
 		}
 	case gatepb.LoginType:
-		if m, err = f.unmarshal(typ, body); err == nil {
+		if m, err = f.unmarshal(sess, typ, body); err == nil {
 			err = f.login(sess, m.(*gatepb.Login))
 		}
 	case gatepb.LogoutType:
-		if m, err = f.unmarshal(typ, body); err == nil {
+		if m, err = f.unmarshal(sess, typ, body); err == nil {
 			err = f.logout(sess, m.(*gatepb.Logout))
 		}
 	default:
@@ -310,43 +311,16 @@ func (f *frontend) onMessage(sess *session, typ proto.Type, body proto.Body) err
 	return err
 }
 
-func (f *frontend) onTextMessage(sess *session, typ proto.Type, args []string) error {
-	if typ != '+' {
-		return sess.println("command should starts with +, e.g. +ping")
+// onTextMessage implements handler onTextMessage method
+func (f *frontend) onTextMessage(sess *session, args []string) error {
+	cmd := commands[strings.ToLower(args[0])]
+	if cmd == nil {
+		return sess.println("command " + args[0] + " not found, run .help to list all supported commands")
 	}
-	if len(args) == 0 {
-		return nil
-	}
-	var (
-		err error
-		cmd = strings.ToLower(args[0])
-	)
-	args = args[1:]
-	switch cmd {
-	case "ping":
-		err = sess.print("pong")
-		if err == nil {
-			for i := range args {
-				if err = sess.print(" "); err != nil {
-					break
-				}
-				if err = sess.print(args[i]); err != nil {
-					break
-				}
-			}
-			if err == nil {
-				err = sess.println()
-			}
-		}
-	case "jsonp":
-		err = sess.println("jsonp not implemented")
-	default:
-		err = sess.println("unknown command")
-	}
-	return err
+	return cmd.run(f, sess, args[1:])
 }
 
-func (f *frontend) unmarshal(typ proto.Type, body proto.Body) (proto.Message, error) {
+func (f *frontend) unmarshal(sess *session, typ proto.Type, body proto.Body) (proto.Message, error) {
 	m := proto.New(typ)
 	if m == nil {
 		return nil, proto.ErrUnrecognizedType
@@ -354,7 +328,8 @@ func (f *frontend) unmarshal(typ proto.Type, body proto.Body) (proto.Message, er
 	if size := body.Len(); size > 0 {
 		buf := proto.AllocBuffer()
 		defer proto.FreeBuffer(buf)
-		if _, err := io.CopyN(buf, body, int64(body.Len())); err != nil {
+		_, err := io.CopyN(buf, body, int64(body.Len()))
+		if err != nil {
 			f.Logger().Warn().
 				Int("type", int(typ)).
 				Int("size", int(size)).
@@ -363,7 +338,15 @@ func (f *frontend) unmarshal(typ proto.Type, body proto.Body) (proto.Message, er
 				Print("read message body error")
 			return nil, err
 		}
-		if err := buf.Unmarshal(m); err != nil {
+		switch sess.ContentType() {
+		case proto.ContentTypeProtobuf:
+			err = buf.Unmarshal(m)
+		case proto.ContentTypeText:
+			err = json.Unmarshal(buf.Bytes(), m)
+		default:
+			err = proto.ErrUnsupportedContentType
+		}
+		if err != nil {
 			f.Logger().Warn().
 				Int("type", int(typ)).
 				String("name", proto.Nameof(m)).
