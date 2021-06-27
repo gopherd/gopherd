@@ -1,4 +1,4 @@
-package internal
+package frontendinternal
 
 import (
 	"context"
@@ -21,24 +21,25 @@ import (
 	"github.com/gopherd/doge/service/discovery"
 	"github.com/gopherd/jwt"
 
+	"github.com/gopherd/gopherd/cmd/gated/backend"
 	"github.com/gopherd/gopherd/cmd/gated/config"
-	"github.com/gopherd/gopherd/cmd/gated/module"
+	"github.com/gopherd/gopherd/cmd/gated/frontend"
 	"github.com/gopherd/gopherd/proto/gatepb"
 )
 
 type Service interface {
 	ID() int64
 	Config() *config.Config
-	Backend() module.Backend
+	Backend() backend.Backend
 	Discovery() discovery.Discovery
 }
 
-func NewComponent(service Service) *frontend {
-	return newFrontend(service)
+func New(service Service) component.Component {
+	return newFrontendComponent(service)
 }
 
-// frontend component
-type frontend struct {
+// frontendComponent component
+type frontendComponent struct {
 	*component.BaseComponent
 
 	service  Service
@@ -58,8 +59,8 @@ type frontend struct {
 	pendings map[int64]*pendingSession
 }
 
-func newFrontend(service Service) *frontend {
-	return &frontend{
+func newFrontendComponent(service Service) *frontendComponent {
+	return &frontendComponent{
 		BaseComponent: component.NewBaseComponent("frontend"),
 		service:       service,
 		uid2sid:       make(map[int64]int64),
@@ -70,7 +71,7 @@ func newFrontend(service Service) *frontend {
 }
 
 // Init overrides BaseComponent Init method
-func (f *frontend) Init() error {
+func (f *frontendComponent) Init() error {
 	if err := f.BaseComponent.Init(); err != nil {
 		return err
 	}
@@ -113,13 +114,13 @@ func (f *frontend) Init() error {
 }
 
 // Start overrides BaseComponent Start method
-func (f *frontend) Start() {
+func (f *frontendComponent) Start() {
 	f.BaseComponent.Start()
 	go f.server.Serve(f.listener)
 }
 
 // Shutdown overrides BaseComponent Shutdown method
-func (f *frontend) Shutdown() {
+func (f *frontendComponent) Shutdown() {
 	f.BaseComponent.Shutdown()
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
@@ -131,13 +132,13 @@ func (f *frontend) Shutdown() {
 	}
 }
 
-func (f *frontend) size() int {
+func (f *frontendComponent) size() int {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
 	return len(f.sessions)
 }
 
-func (f *frontend) add(s *session) (n int, ok bool) {
+func (f *frontendComponent) add(s *session) (n int, ok bool) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	f.sessions[s.id] = s
@@ -150,7 +151,7 @@ func (f *frontend) add(s *session) (n int, ok bool) {
 	return
 }
 
-func (f *frontend) remove(id int64) *session {
+func (f *frontendComponent) remove(id int64) *session {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	s, ok := f.sessions[id]
@@ -169,7 +170,7 @@ func (f *frontend) remove(id int64) *session {
 	return s
 }
 
-func (f *frontend) mapping(uid, sid int64) bool {
+func (f *frontendComponent) mapping(uid, sid int64) bool {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	if old, ok := f.uid2sid[uid]; ok {
@@ -182,13 +183,13 @@ func (f *frontend) mapping(uid, sid int64) bool {
 	return true
 }
 
-func (f *frontend) get(sid int64) *session {
+func (f *frontendComponent) get(sid int64) *session {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
 	return f.sessions[sid]
 }
 
-func (f *frontend) find(uid int64) *session {
+func (f *frontendComponent) find(uid int64) *session {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
 	sid, ok := f.uid2sid[uid]
@@ -198,7 +199,7 @@ func (f *frontend) find(uid int64) *session {
 	return f.sessions[sid]
 }
 
-func (f *frontend) recordIP(sid int64, ip string) bool {
+func (f *frontendComponent) recordIP(sid int64, ip string) bool {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	if n := f.ips[ip]; n < f.maxConnsPerIP {
@@ -208,7 +209,7 @@ func (f *frontend) recordIP(sid int64, ip string) bool {
 	return false
 }
 
-func (f *frontend) clean(ttl, now int64) {
+func (f *frontendComponent) clean(ttl, now int64) {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
 	for sid, s := range f.sessions {
@@ -219,7 +220,7 @@ func (f *frontend) clean(ttl, now int64) {
 	}
 }
 
-func (f *frontend) broadcast(data []byte, ttl, now int64) {
+func (f *frontendComponent) broadcast(data []byte, ttl, now int64) {
 	f.mutex.RLock()
 	defer f.mutex.Unlock()
 	for sid, s := range f.sessions {
@@ -235,11 +236,11 @@ func (f *frontend) broadcast(data []byte, ttl, now int64) {
 	}
 }
 
-func (f *frontend) allocSessionId() int64 {
+func (f *frontendComponent) allocSessionId() int64 {
 	return atomic.AddInt64(&f.nextSessionId, 1)
 }
 
-func (f *frontend) onOpen(ip string, conn net.Conn) {
+func (f *frontendComponent) onOpen(ip string, conn net.Conn) {
 	sid := f.allocSessionId()
 	f.Logger().Debug().
 		Int64("sid", sid).
@@ -251,7 +252,7 @@ func (f *frontend) onOpen(ip string, conn net.Conn) {
 }
 
 // onReady implements handler onReady method
-func (f *frontend) onReady(sess *session) {
+func (f *frontendComponent) onReady(sess *session) {
 	n, ok := f.add(sess)
 	if !ok {
 		f.Logger().Warn().
@@ -267,13 +268,13 @@ func (f *frontend) onReady(sess *session) {
 }
 
 // onClose implements handler onClose method
-func (f *frontend) onClose(sess *session, err error) {
+func (f *frontendComponent) onClose(sess *session, err error) {
 	f.Logger().Debug().Int64("sid", sess.id).Print("session closed")
 	f.remove(sess.id)
 }
 
 // onMessage implements handler onMessage method
-func (f *frontend) onMessage(sess *session, typ proto.Type, body proto.Body) error {
+func (f *frontendComponent) onMessage(sess *session, typ proto.Type, body proto.Body) error {
 	f.Logger().Trace().
 		Int64("sid", sess.id).
 		Int("size", body.Len()).
@@ -312,7 +313,7 @@ func (f *frontend) onMessage(sess *session, typ proto.Type, body proto.Body) err
 }
 
 // onTextMessage implements handler onTextMessage method
-func (f *frontend) onTextMessage(sess *session, args []string) error {
+func (f *frontendComponent) onTextMessage(sess *session, args []string) error {
 	cmd := commands[strings.ToLower(args[0])]
 	if cmd == nil {
 		return sess.println("command " + args[0] + " not found, run .help to list all supported commands")
@@ -320,7 +321,7 @@ func (f *frontend) onTextMessage(sess *session, args []string) error {
 	return cmd.run(f, sess, args[1:])
 }
 
-func (f *frontend) unmarshal(sess *session, typ proto.Type, body proto.Body) (proto.Message, error) {
+func (f *frontendComponent) unmarshal(sess *session, typ proto.Type, body proto.Body) (proto.Message, error) {
 	m := proto.New(typ)
 	if m == nil {
 		return nil, proto.ErrUnrecognizedType
@@ -358,9 +359,9 @@ func (f *frontend) unmarshal(sess *session, typ proto.Type, body proto.Body) (pr
 	return m, nil
 }
 
-func (f *frontend) setUserLogged(uid, sid int64) (bool, error) {
+func (f *frontendComponent) setUserLogged(uid, sid int64) (bool, error) {
 	var (
-		name    = path.Join(f.service.Config().Core.Project, module.UsersTable)
+		name    = path.Join(f.service.Config().Core.Project, frontend.UsersTable)
 		content = make([]byte, 0, 32)
 	)
 	content = strconv.AppendInt(content, f.service.ID(), 10)
@@ -380,11 +381,11 @@ func (f *frontend) setUserLogged(uid, sid int64) (bool, error) {
 	return true, nil
 }
 
-func (f *frontend) forward(sess *session, typ proto.Type, body proto.Body) error {
+func (f *frontendComponent) forward(sess *session, typ proto.Type, body proto.Body) error {
 	return f.service.Backend().Forward(sess.getUid(), typ, body)
 }
 
-func (f *frontend) ping(sess *session, req *gatepb.Ping) error {
+func (f *frontendComponent) ping(sess *session, req *gatepb.Ping) error {
 	f.Logger().Debug().
 		Int64("sid", sess.id).
 		String("content", req.Content).
@@ -395,7 +396,7 @@ func (f *frontend) ping(sess *session, req *gatepb.Ping) error {
 	return sess.send(pong)
 }
 
-func (f *frontend) login(sess *session, req *gatepb.Login) error {
+func (f *frontendComponent) login(sess *session, req *gatepb.Login) error {
 	cfg := f.service.Config()
 	claims, err := f.verifier.Verify(cfg.JWT.Issuer, req.Token)
 	if err != nil {
@@ -411,7 +412,7 @@ func (f *frontend) login(sess *session, req *gatepb.Login) error {
 	return f.service.Backend().Login(uid, claims, req.Userdata)
 }
 
-func (f *frontend) logout(sess *session, req *gatepb.Logout) error {
+func (f *frontendComponent) logout(sess *session, req *gatepb.Logout) error {
 	uid := sess.getUid()
 	if uid <= 0 {
 		return nil
@@ -420,7 +421,7 @@ func (f *frontend) logout(sess *session, req *gatepb.Logout) error {
 }
 
 // BroadcastAll implements module.Frontend BroadcastAll method
-func (f *frontend) BroadcastAll(content []byte) error {
+func (f *frontendComponent) BroadcastAll(content []byte) error {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
 	for _, sess := range f.sessions {
@@ -430,7 +431,7 @@ func (f *frontend) BroadcastAll(content []byte) error {
 }
 
 // Broadcast implements module.Frontend Broadcast method
-func (f *frontend) Broadcast(uids []int64, content []byte) error {
+func (f *frontendComponent) Broadcast(uids []int64, content []byte) error {
 	for _, uid := range uids {
 		sess := f.find(uid)
 		if sess != nil {
@@ -441,7 +442,7 @@ func (f *frontend) Broadcast(uids []int64, content []byte) error {
 }
 
 // Send implements module.Frontend Send method
-func (f *frontend) Send(uid int64, content []byte) error {
+func (f *frontendComponent) Send(uid int64, content []byte) error {
 	sess := f.find(uid)
 	if sess == nil {
 		f.Logger().Debug().
@@ -459,7 +460,7 @@ func (f *frontend) Send(uid int64, content []byte) error {
 }
 
 // Kickout implements module.Frontend Kickout method
-func (f *frontend) Kickout(uid int64, reason gatepb.KickoutReason) error {
+func (f *frontendComponent) Kickout(uid int64, reason gatepb.KickoutReason) error {
 	sess := f.find(uid)
 	if sess == nil {
 		f.Logger().Debug().

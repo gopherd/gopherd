@@ -1,4 +1,4 @@
-package internal
+package frontendinternal
 
 import (
 	"sort"
@@ -12,7 +12,7 @@ type command struct {
 	name   string
 	format string
 	usage  string
-	run    func(*frontend, *session, []string) error
+	run    func(*frontendComponent, *session, []string) error
 }
 
 var (
@@ -35,7 +35,7 @@ func init() {
 		name:   "help",
 		format: "[command]",
 		usage:  "show help information",
-		run: func(f *frontend, sess *session, args []string) error {
+		run: func(f *frontendComponent, sess *session, args []string) error {
 			var cmds []*command
 			if len(args) > 0 {
 				for i := range args {
@@ -76,7 +76,7 @@ func init() {
 		name:   "echo",
 		format: "[content]",
 		usage:  "echo content",
-		run: func(f *frontend, sess *session, args []string) error {
+		run: func(f *frontendComponent, sess *session, args []string) error {
 			for i := range args {
 				if i > 0 {
 					if err := sess.print(" "); err != nil {
@@ -96,7 +96,7 @@ func init() {
 		name:   "send",
 		format: "<type> [json]",
 		usage:  "send message by type with json formatted content",
-		run: func(f *frontend, sess *session, args []string) error {
+		run: func(f *frontendComponent, sess *session, args []string) error {
 			if len(args) < 1 {
 				return sess.println("argument <type> required")
 			}

@@ -1,22 +1,13 @@
 package frontend
 
-import (
-	"github.com/gopherd/doge/service/component"
+import "github.com/gopherd/gopherd/proto/gatepb"
 
-	"github.com/gopherd/gopherd/cmd/gated/frontend/internal"
-	"github.com/gopherd/gopherd/cmd/gated/module"
-)
+const UsersTable = "gated/users"
 
-// Component declares frontend component interface
-type Component interface {
-	component.Component
-	module.Frontend
-}
-
-// Service aliases service for frontend component
-type Service = internal.Service
-
-// NewComponent creates Frontent component
-func NewComponent(service internal.Service) Component {
-	return internal.NewComponent(service)
+// Frontend managers client sessions
+type Frontend interface {
+	Broadcast(uids []int64, content []byte) error
+	BroadcastAll(content []byte) error
+	Send(uid int64, content []byte) error
+	Kickout(uid int64, reason gatepb.KickoutReason) error
 }

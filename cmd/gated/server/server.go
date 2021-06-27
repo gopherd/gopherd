@@ -9,9 +9,10 @@ import (
 	"github.com/gopherd/doge/service"
 
 	"github.com/gopherd/gopherd/cmd/gated/backend"
+	"github.com/gopherd/gopherd/cmd/gated/backend/backendinternal"
 	"github.com/gopherd/gopherd/cmd/gated/config"
 	"github.com/gopherd/gopherd/cmd/gated/frontend"
-	"github.com/gopherd/gopherd/cmd/gated/module"
+	"github.com/gopherd/gopherd/cmd/gated/frontend/frontendinternal"
 )
 
 const (
@@ -20,31 +21,6 @@ const (
 	kCleanDeadSessionInterval     = time.Minute
 	kUserInfoTTLRatio             = 750 // 750/1000
 )
-
-type option struct {
-	newFrontend func(frontend.Service) frontend.Component
-	newBackend  func(backend.Service) backend.Component
-}
-
-func (opt *option) apply(options []Option) {
-	for i := range options {
-		options[i](opt)
-	}
-}
-
-type Option func(*option)
-
-func WithFrontend(newFrontend func(frontend.Service) frontend.Component) Option {
-	return func(opt *option) {
-		opt.newFrontend = newFrontend
-	}
-}
-
-func WithBackend(newBackend func(backend.Service) backend.Component) Option {
-	return func(opt *option) {
-		opt.newBackend = newBackend
-	}
-}
 
 type server struct {
 	*service.BaseService
@@ -56,32 +32,22 @@ type server struct {
 	quit, wait chan struct{}
 
 	components struct {
-		frontend module.Frontend
-		backend  module.Backend
+		frontend frontend.Frontend
+		backend  backend.Backend
 	}
 }
 
 // New creates gated service
-func New(cfg *config.Config, options ...Option) service.Service {
+func New(cfg *config.Config) service.Service {
 	s := &server{
 		quit: make(chan struct{}),
 		wait: make(chan struct{}),
 	}
 	s.BaseService = service.NewBaseService(s, cfg)
-
 	s.internal.config = cfg
 
-	var opt option
-	opt.apply(options)
-	if opt.newFrontend == nil {
-		opt.newFrontend = frontend.NewComponent
-	}
-	if opt.newBackend == nil {
-		opt.newBackend = backend.NewComponent
-	}
-
-	s.components.frontend = s.AddComponent(opt.newFrontend(s)).(module.Frontend)
-	s.components.backend = s.AddComponent(opt.newBackend(s)).(module.Backend)
+	s.components.frontend = s.AddComponent(frontendinternal.New(s)).(frontend.Frontend)
+	s.components.backend = s.AddComponent(backendinternal.New(s)).(backend.Backend)
 
 	return s
 }
@@ -143,5 +109,5 @@ func (s *server) onUpdate(now time.Time, dt time.Duration) {
 	s.BaseService.Update(now, dt)
 }
 
-func (s *server) Frontend() module.Frontend { return s.components.frontend }
-func (s *server) Backend() module.Backend   { return s.components.backend }
+func (s *server) Frontend() frontend.Frontend { return s.components.frontend }
+func (s *server) Backend() backend.Backend    { return s.components.backend }

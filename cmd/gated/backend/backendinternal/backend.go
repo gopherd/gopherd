@@ -1,4 +1,4 @@
-package internal
+package backendinternal
 
 import (
 	"strconv"
@@ -9,7 +9,7 @@ import (
 	"github.com/gopherd/jwt"
 
 	"github.com/gopherd/gopherd/cmd/gated/config"
-	"github.com/gopherd/gopherd/cmd/gated/module"
+	"github.com/gopherd/gopherd/cmd/gated/frontend"
 	"github.com/gopherd/gopherd/proto/gatepb"
 )
 
@@ -18,26 +18,26 @@ type Service interface {
 	MQ() mq.Conn
 	ID() int64
 	Name() string
-	Frontend() module.Frontend
+	Frontend() frontend.Frontend
 }
 
-func NewComponent(service Service) *backend {
-	return newBackend(service)
+func New(service Service) component.Component {
+	return newBackendComponent(service)
 }
 
-type backend struct {
+type backendComponent struct {
 	*component.BaseComponent
 	service Service
 }
 
-func newBackend(service Service) *backend {
-	return &backend{
+func newBackendComponent(service Service) *backendComponent {
+	return &backendComponent{
 		BaseComponent: component.NewBaseComponent("backend"),
 		service:       service,
 	}
 }
 
-func (b *backend) Init() error {
+func (b *backendComponent) Init() error {
 	if err := b.BaseComponent.Init(); err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (b *backend) Init() error {
 	return nil
 }
 
-func (b *backend) consume(topic string, msg []byte, err error) {
+func (b *backendComponent) consume(topic string, msg []byte, err error) {
 	if err != nil {
 		b.Logger().Warn().
 			Error("error", err).
@@ -84,7 +84,7 @@ func (b *backend) consume(topic string, msg []byte, err error) {
 	}
 }
 
-func (b *backend) onBroadcast(ptc *gatepb.Broadcast) {
+func (b *backendComponent) onBroadcast(ptc *gatepb.Broadcast) {
 	if len(ptc.Uids) == 0 {
 		b.service.Frontend().BroadcastAll(ptc.Content)
 	} else {
@@ -92,25 +92,25 @@ func (b *backend) onBroadcast(ptc *gatepb.Broadcast) {
 	}
 }
 
-func (b *backend) onResponse(ptc *gatepb.Response) {
+func (b *backendComponent) onResponse(ptc *gatepb.Response) {
 	b.service.Frontend().Send(ptc.Uid, ptc.Content)
 }
 
-func (b *backend) onPing(ptc *gatepb.Ping) {
+func (b *backendComponent) onPing(ptc *gatepb.Ping) {
 }
 
-func (b *backend) onPong(ptc *gatepb.Pong) {
+func (b *backendComponent) onPong(ptc *gatepb.Pong) {
 }
 
 // Forward forwards message from frontend to backend
-func (b *backend) Forward(uid int64, typ proto.Type, body proto.Body) error {
+func (b *backendComponent) Forward(uid int64, typ proto.Type, body proto.Body) error {
 	return nil
 }
 
-func (b *backend) Login(uid int64, claims *jwt.Claims, userdata []byte) error {
+func (b *backendComponent) Login(uid int64, claims *jwt.Claims, userdata []byte) error {
 	return nil
 }
 
-func (b *backend) Logout(uid int64) error {
+func (b *backendComponent) Logout(uid int64) error {
 	return nil
 }
