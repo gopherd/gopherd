@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/textproto"
 	"path"
 	"strconv"
 	"strings"
@@ -311,43 +310,40 @@ func (f *frontend) onMessage(sess *session, typ proto.Type, body proto.Body) err
 	return err
 }
 
-func (f *frontend) onTextMessage(sess *session, typ proto.Type, reader *textproto.Reader) error {
-	var args []string
-	for {
-		line, err := reader.ReadLine()
-		if err != nil {
-			return err
-		}
-		line = strings.TrimSpace(line)
-		if line == "" {
-			break
-		}
-		end := line[len(line)-1] != '\\'
-		if !end {
-			line = strings.TrimSpace(line[:len(line)-1])
-		}
-		args = append(args, line)
-		if end {
-			break
-		}
-	}
+func (f *frontend) onTextMessage(sess *session, typ proto.Type, args []string) error {
 	if typ != '+' {
-		return sess.sendTextResponse("command should starts with +, e.g. +ping")
+		return sess.println("command should starts with +, e.g. +ping")
 	}
 	if len(args) == 0 {
 		return nil
 	}
-	cmd := strings.ToUpper(args[0])
+	var (
+		err error
+		cmd = strings.ToLower(args[0])
+	)
+	args = args[1:]
 	switch cmd {
-	case "PING":
-		sess.sendTextResponse("pong")
-		for i := 1; i < len(args); i++ {
-			sess.sendText(args[i])
+	case "ping":
+		err = sess.print("pong")
+		if err == nil {
+			for i := range args {
+				if err = sess.print(" "); err != nil {
+					break
+				}
+				if err = sess.print(args[i]); err != nil {
+					break
+				}
+			}
+			if err == nil {
+				err = sess.println()
+			}
 		}
+	case "jsonp":
+		err = sess.println("jsonp not implemented")
 	default:
-		sess.sendTextResponse("unknown command")
+		err = sess.println("unknown command")
 	}
-	return nil
+	return err
 }
 
 func (f *frontend) unmarshal(typ proto.Type, body proto.Body) (proto.Message, error) {

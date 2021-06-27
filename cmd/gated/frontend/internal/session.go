@@ -1,14 +1,17 @@
 package internal
 
 import (
+	"bufio"
+	"fmt"
 	"net"
-	"net/textproto"
 	"strconv"
 	"sync/atomic"
 	"time"
 
+	"github.com/gopherd/doge/erron"
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/doge/proto"
+	"github.com/gopherd/doge/text/shell"
 	"github.com/gopherd/jwt"
 	"github.com/gopherd/log"
 )
@@ -30,14 +33,12 @@ const (
 	stateOverflow
 )
 
-var textprotoPrefix = []byte{'-'}
-
 // session event handler
 type handler interface {
 	onReady(*session)
 	onClose(*session, error)
 	onMessage(*session, proto.Type, proto.Body) error
-	onTextMessage(*session, proto.Type, *textproto.Reader) error
+	onTextMessage(*session, proto.Type, []string) error
 }
 
 // session holds a context for each connection
@@ -62,6 +63,10 @@ type session struct {
 			send int64
 		}
 		// (TODO): limiter
+	}
+
+	cache struct {
+		args []string
 	}
 }
 
@@ -109,8 +114,25 @@ func (s *session) OnMessage(typ proto.Type, body proto.Body) error {
 }
 
 // OnMessage implements netutil.TextMessageHandler OnTextMessage method
-func (s *session) OnTextMessage(typ proto.Type, body *textproto.Reader) error {
-	return s.handler.onTextMessage(s, typ, body)
+func (s *session) OnTextMessage(typ proto.Type, body *bufio.Reader) error {
+	lexer := shell.NewLexer(body)
+	s.cache.args = s.cache.args[:0]
+	for {
+		word, end, err := lexer.Next()
+		if err != nil {
+			if e := s.println(err.Error()); err != nil {
+				return e
+			}
+			return erron.New("invalid text message %w", err)
+		}
+		if word != nil {
+			s.cache.args = append(s.cache.args, string(word))
+		}
+		if end {
+			break
+		}
+	}
+	return s.handler.onTextMessage(s, typ, s.cache.args)
 }
 
 // serve runs the session read/write loops
@@ -141,20 +163,16 @@ func (sess *session) send(m proto.Message) error {
 	return err
 }
 
-func (sess *session) sendTextResponse(text string) error {
-	_, err := sess.Write(textprotoPrefix)
-	if err != nil {
-		return err
-	}
-	return sess.sendText(text)
+func (sess *session) print(a ...interface{}) error {
+	_, err := fmt.Fprint(sess, a...)
+	return err
 }
 
-func (sess *session) sendText(text string) error {
-	_, err := sess.Write([]byte(text))
-	if err != nil {
+func (sess *session) println(a ...interface{}) error {
+	if _, err := fmt.Fprint(sess, a...); err != nil {
 		return err
 	}
-	_, err = sess.Write(proto.CRLF())
+	_, err := sess.Write(proto.CRLF())
 	return err
 }
 
