@@ -5,6 +5,7 @@ import (
 
 	"github.com/gopherd/doge/mq"
 	"github.com/gopherd/doge/proto"
+	"github.com/gopherd/doge/service"
 	"github.com/gopherd/doge/service/component"
 	"github.com/gopherd/jwt"
 
@@ -14,26 +15,25 @@ import (
 )
 
 // New returns a backend component
-func New(service service) component.Component {
+func New(service Service) component.Component {
 	return newBackendComponent(service)
 }
 
-// service is required by backend component
-type service interface {
-	Config() *config.Config
-	MQ() mq.Conn
-	ID() int64
-	Name() string
-	Frontend() frontend.Component
+// Service is required by backend component
+type Service interface {
+	service.Meta
+	Config() *config.Config       // Config of service
+	MQ() mq.Conn                  // MQ instance
+	Frontend() frontend.Component // Frontend component
 }
 
 // backendComponent implements backend.Component interface
 type backendComponent struct {
 	*component.BaseComponent
-	service service
+	service Service
 }
 
-func newBackendComponent(service service) *backendComponent {
+func newBackendComponent(service Service) *backendComponent {
 	return &backendComponent{
 		BaseComponent: component.NewBaseComponent("backend"),
 		service:       service,

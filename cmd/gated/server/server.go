@@ -15,13 +15,6 @@ import (
 	"github.com/gopherd/gopherd/cmd/gated/frontend/frontendinternal"
 )
 
-const (
-	kMaxDurationForPendingSession = time.Second * 5
-	kHandlePendingSessionInterval = time.Millisecond * 200
-	kCleanDeadSessionInterval     = time.Minute
-	kUserInfoTTLRatio             = 750 // 750/1000
-)
-
 type server struct {
 	*service.BaseService
 

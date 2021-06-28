@@ -8,7 +8,7 @@ import (
 
 	// imports drivers
 	_ "github.com/gopherd/redis/discovery"
-	_ "github.com/gopherd/redis/redismq"
+	_ "github.com/gopherd/redis/mq"
 	_ "github.com/gopherd/zmq"
 )
 

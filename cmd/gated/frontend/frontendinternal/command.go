@@ -2,7 +2,6 @@ package frontendinternal
 
 import (
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/gopherd/doge/proto"
@@ -19,19 +18,19 @@ var (
 	commands = make(map[string]*command)
 )
 
-func registerCommand(cmd *command) {
+func register(cmd *command) {
 	if cmd.name == "" {
-		panic("registerCommand a empty command")
+		panic("register a empty command")
 	}
 	if _, dup := commands[cmd.name]; dup {
-		panic("registerCommand called twice for " + cmd.name)
+		panic("register called twice for " + cmd.name)
 	}
 	commands[cmd.name] = cmd
 }
 
 func init() {
 	// .help [command]
-	registerCommand(&command{
+	register(&command{
 		name:   "help",
 		format: "[command]",
 		usage:  "show help information",
@@ -71,8 +70,17 @@ func init() {
 		},
 	})
 
+	// .ping [content]
+	register(&command{
+		name:  "ping",
+		usage: "ping the server",
+		run: func(f *frontendComponent, sess *session, args []string) error {
+			return sess.println("pong")
+		},
+	})
+
 	// .echo [content]
-	registerCommand(&command{
+	register(&command{
 		name:   "echo",
 		format: "[content]",
 		usage:  "echo content",
@@ -92,7 +100,7 @@ func init() {
 	})
 
 	// .send <type> [json]
-	registerCommand(&command{
+	register(&command{
 		name:   "send",
 		format: "<type> [json]",
 		usage:  "send message by type with json formatted content",
@@ -100,12 +108,9 @@ func init() {
 			if len(args) < 1 {
 				return sess.println("argument <type> required")
 			}
-			typ, err := strconv.Atoi(args[0])
+			typ, err := proto.ParseType(args[0])
 			if err != nil {
 				return sess.println("argument <type> invalid")
-			}
-			if typ <= 0 || typ > proto.MaxType {
-				return sess.println("argument <type> out of range")
 			}
 			body := proto.Text([]byte(strings.Join(args[1:], "")))
 			return f.onMessage(sess, proto.Type(typ), body)

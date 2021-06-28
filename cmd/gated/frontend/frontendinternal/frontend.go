@@ -3,6 +3,7 @@ package frontendinternal
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -17,6 +18,7 @@ import (
 	"github.com/gopherd/doge/net/httputil"
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/doge/proto"
+	"github.com/gopherd/doge/service"
 	"github.com/gopherd/doge/service/component"
 	"github.com/gopherd/doge/service/discovery"
 	"github.com/gopherd/jwt"
@@ -28,22 +30,22 @@ import (
 )
 
 // New returns a frontend component
-func New(service service) component.Component {
+func New(service Service) component.Component {
 	return newFrontendComponent(service)
 }
 
-// service is required by frontend component
-type service interface {
-	ID() int64
-	Config() *config.Config
-	Backend() backend.Component
-	Discovery() discovery.Discovery
+// Service is required by frontend component
+type Service interface {
+	service.Meta
+	Config() *config.Config         // Config of service
+	Discovery() discovery.Discovery // Discovery instance
+	Backend() backend.Component     // Backend component
 }
 
 // frontendComponent implements frontend.Component interface
 type frontendComponent struct {
 	*component.BaseComponent
-	service service
+	service Service
 
 	verifier *jwt.Verifier
 	server   interface{ Serve(net.Listener) error }
@@ -60,7 +62,7 @@ type frontendComponent struct {
 	pendings map[int64]*pendingSession
 }
 
-func newFrontendComponent(service service) *frontendComponent {
+func newFrontendComponent(service Service) *frontendComponent {
 	return &frontendComponent{
 		BaseComponent: component.NewBaseComponent("frontend"),
 		service:       service,
@@ -317,7 +319,15 @@ func (f *frontendComponent) onMessage(sess *session, typ proto.Type, body proto.
 func (f *frontendComponent) onTextMessage(sess *session, args []string) error {
 	cmd := commands[strings.ToLower(args[0])]
 	if cmd == nil {
-		return sess.println("command " + args[0] + " not found, run .help to list all supported commands")
+		typ, err := proto.ParseType(args[0])
+		if err != nil {
+			if errors.Is(err, proto.ErrTypeOverflow) {
+				return err
+			}
+			return sess.println("command " + args[0] + " not found, run .help to list all supported commands")
+		}
+		body := proto.Text([]byte(strings.Join(args[1:], "")))
+		return f.onMessage(sess, typ, body)
 	}
 	return cmd.run(f, sess, args[1:])
 }

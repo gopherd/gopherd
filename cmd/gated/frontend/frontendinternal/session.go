@@ -17,12 +17,6 @@ import (
 
 var crlf = []byte{'\r', '\n'}
 
-// userdata of session
-type user struct {
-	device string
-	token  jwt.Payload
-}
-
 // session state enumerator
 type state int
 
@@ -33,6 +27,19 @@ const (
 	stateClosing
 	stateOverflow
 )
+
+const (
+	maxDurationForPendingSession = time.Second * 5
+	handlePendingSessionInterval = time.Millisecond * 200
+	cleanDeadSessionInterval     = time.Minute
+	userInfoTTLRatio             = 750 // 750/1000
+)
+
+// userdata of session
+type user struct {
+	device string
+	token  jwt.Payload
+}
 
 // session event handler
 type handler interface {
