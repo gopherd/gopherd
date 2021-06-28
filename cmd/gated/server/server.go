@@ -9,10 +9,10 @@ import (
 	"github.com/gopherd/doge/service"
 
 	"github.com/gopherd/gopherd/cmd/gated/backend"
-	"github.com/gopherd/gopherd/cmd/gated/backend/backendinternal"
+	"github.com/gopherd/gopherd/cmd/gated/backend/backendmod"
 	"github.com/gopherd/gopherd/cmd/gated/config"
 	"github.com/gopherd/gopherd/cmd/gated/frontend"
-	"github.com/gopherd/gopherd/cmd/gated/frontend/frontendinternal"
+	"github.com/gopherd/gopherd/cmd/gated/frontend/frontendmod"
 )
 
 type server struct {
@@ -24,9 +24,9 @@ type server struct {
 
 	quit, wait chan struct{}
 
-	components struct {
-		frontend frontend.Component
-		backend  backend.Component
+	modules struct {
+		frontend frontend.Module
+		backend  backend.Module
 	}
 }
 
@@ -39,8 +39,8 @@ func New(cfg *config.Config) service.Service {
 	s.BaseService = service.NewBaseService(s, cfg)
 	s.internal.config = cfg
 
-	s.components.frontend = s.AddComponent(frontendinternal.New(s)).(frontend.Component)
-	s.components.backend = s.AddComponent(backendinternal.New(s)).(backend.Component)
+	s.modules.frontend = s.AddModule(frontendmod.New(s)).(frontend.Module)
+	s.modules.backend = s.AddModule(backendmod.New(s)).(backend.Module)
 
 	return s
 }
@@ -102,5 +102,5 @@ func (s *server) onUpdate(now time.Time, dt time.Duration) {
 	s.BaseService.Update(now, dt)
 }
 
-func (s *server) Frontend() frontend.Component { return s.components.frontend }
-func (s *server) Backend() backend.Component   { return s.components.backend }
+func (s *server) Frontend() frontend.Module { return s.modules.frontend }
+func (s *server) Backend() backend.Module   { return s.modules.backend }

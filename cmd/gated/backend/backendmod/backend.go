@@ -1,4 +1,4 @@
-package backendinternal
+package backendmod
 
 import (
 	"strconv"
@@ -6,7 +6,7 @@ import (
 	"github.com/gopherd/doge/mq"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service"
-	"github.com/gopherd/doge/service/component"
+	"github.com/gopherd/doge/service/module"
 	"github.com/gopherd/jwt"
 
 	"github.com/gopherd/gopherd/cmd/gated/config"
@@ -14,34 +14,34 @@ import (
 	"github.com/gopherd/gopherd/proto/gatepb"
 )
 
-// New returns a backend component
-func New(service Service) component.Component {
-	return newBackendComponent(service)
+// New returns a backend module
+func New(service Service) module.Module {
+	return newBackendModule(service)
 }
 
-// Service is required by backend component
+// Service is required by backend module
 type Service interface {
 	service.Meta
-	Config() *config.Config       // Config of service
-	MQ() mq.Conn                  // MQ instance
-	Frontend() frontend.Component // Frontend component
+	Config() *config.Config    // Config of service
+	MQ() mq.Conn               // MQ instance
+	Frontend() frontend.Module // Frontend module
 }
 
-// backendComponent implements backend.Component interface
-type backendComponent struct {
-	*component.BaseComponent
+// backendModule implements backend.Module interface
+type backendModule struct {
+	*module.BaseModule
 	service Service
 }
 
-func newBackendComponent(service Service) *backendComponent {
-	return &backendComponent{
-		BaseComponent: component.NewBaseComponent("backend"),
-		service:       service,
+func newBackendModule(service Service) *backendModule {
+	return &backendModule{
+		BaseModule: module.NewBaseModule("backend"),
+		service:    service,
 	}
 }
 
-func (b *backendComponent) Init() error {
-	if err := b.BaseComponent.Init(); err != nil {
+func (b *backendModule) Init() error {
+	if err := b.BaseModule.Init(); err != nil {
 		return err
 	}
 	topic := b.service.Name() + "/" + strconv.FormatInt(b.service.ID(), 10)
@@ -49,7 +49,7 @@ func (b *backendComponent) Init() error {
 	return nil
 }
 
-func (b *backendComponent) consume(topic string, msg []byte, err error) {
+func (b *backendModule) consume(topic string, msg []byte, err error) {
 	if err != nil {
 		b.Logger().Warn().
 			Error("error", err).
@@ -87,7 +87,7 @@ func (b *backendComponent) consume(topic string, msg []byte, err error) {
 	}
 }
 
-func (b *backendComponent) onBroadcast(ptc *gatepb.Broadcast) {
+func (b *backendModule) onBroadcast(ptc *gatepb.Broadcast) {
 	if len(ptc.Uids) == 0 {
 		b.service.Frontend().BroadcastAll(ptc.Content)
 	} else {
@@ -95,25 +95,25 @@ func (b *backendComponent) onBroadcast(ptc *gatepb.Broadcast) {
 	}
 }
 
-func (b *backendComponent) onResponse(ptc *gatepb.Response) {
+func (b *backendModule) onResponse(ptc *gatepb.Response) {
 	b.service.Frontend().Send(ptc.Uid, ptc.Content)
 }
 
-func (b *backendComponent) onPing(ptc *gatepb.Ping) {
+func (b *backendModule) onPing(ptc *gatepb.Ping) {
 }
 
-func (b *backendComponent) onPong(ptc *gatepb.Pong) {
+func (b *backendModule) onPong(ptc *gatepb.Pong) {
 }
 
 // Forward forwards message from frontend to backend
-func (b *backendComponent) Forward(uid int64, typ proto.Type, body proto.Body) error {
+func (b *backendModule) Forward(uid int64, typ proto.Type, body proto.Body) error {
 	return nil
 }
 
-func (b *backendComponent) Login(uid int64, claims *jwt.Claims, userdata []byte) error {
+func (b *backendModule) Login(uid int64, claims *jwt.Claims, userdata []byte) error {
 	return nil
 }
 
-func (b *backendComponent) Logout(uid int64) error {
+func (b *backendModule) Logout(uid int64) error {
 	return nil
 }

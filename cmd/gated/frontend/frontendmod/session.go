@@ -1,4 +1,4 @@
-package frontendinternal
+package frontendmod
 
 import (
 	"net"
