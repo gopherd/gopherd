@@ -27,24 +27,25 @@ import (
 	"github.com/gopherd/gopherd/proto/gatepb"
 )
 
-type Service interface {
-	ID() int64
-	Config() *config.Config
-	Backend() backend.Backend
-	Discovery() discovery.Discovery
-}
-
-func New(service Service) component.Component {
+// New returns a frontend component
+func New(service service) component.Component {
 	return newFrontendComponent(service)
 }
 
-// frontendComponent component
+// service is required by frontend component
+type service interface {
+	ID() int64
+	Config() *config.Config
+	Backend() backend.Component
+	Discovery() discovery.Discovery
+}
+
+// frontendComponent implements frontend.Component interface
 type frontendComponent struct {
 	*component.BaseComponent
+	service service
 
-	service  Service
 	verifier *jwt.Verifier
-
 	server   interface{ Serve(net.Listener) error }
 	listener net.Listener
 
@@ -59,7 +60,7 @@ type frontendComponent struct {
 	pendings map[int64]*pendingSession
 }
 
-func newFrontendComponent(service Service) *frontendComponent {
+func newFrontendComponent(service service) *frontendComponent {
 	return &frontendComponent{
 		BaseComponent: component.NewBaseComponent("frontend"),
 		service:       service,

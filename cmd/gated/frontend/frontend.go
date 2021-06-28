@@ -4,8 +4,8 @@ import "github.com/gopherd/gopherd/proto/gatepb"
 
 const UsersTable = "gated/users"
 
-// Frontend managers client sessions
-type Frontend interface {
+// Component managers client sessions
+type Component interface {
 	Broadcast(uids []int64, content []byte) error
 	BroadcastAll(content []byte) error
 	Send(uid int64, content []byte) error

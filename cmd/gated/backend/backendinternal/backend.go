@@ -13,24 +13,27 @@ import (
 	"github.com/gopherd/gopherd/proto/gatepb"
 )
 
-type Service interface {
+// New returns a backend component
+func New(service service) component.Component {
+	return newBackendComponent(service)
+}
+
+// service is required by backend component
+type service interface {
 	Config() *config.Config
 	MQ() mq.Conn
 	ID() int64
 	Name() string
-	Frontend() frontend.Frontend
+	Frontend() frontend.Component
 }
 
-func New(service Service) component.Component {
-	return newBackendComponent(service)
-}
-
+// backendComponent implements backend.Component interface
 type backendComponent struct {
 	*component.BaseComponent
-	service Service
+	service service
 }
 
-func newBackendComponent(service Service) *backendComponent {
+func newBackendComponent(service service) *backendComponent {
 	return &backendComponent{
 		BaseComponent: component.NewBaseComponent("backend"),
 		service:       service,

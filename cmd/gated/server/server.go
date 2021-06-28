@@ -32,8 +32,8 @@ type server struct {
 	quit, wait chan struct{}
 
 	components struct {
-		frontend frontend.Frontend
-		backend  backend.Backend
+		frontend frontend.Component
+		backend  backend.Component
 	}
 }
 
@@ -46,8 +46,8 @@ func New(cfg *config.Config) service.Service {
 	s.BaseService = service.NewBaseService(s, cfg)
 	s.internal.config = cfg
 
-	s.components.frontend = s.AddComponent(frontendinternal.New(s)).(frontend.Frontend)
-	s.components.backend = s.AddComponent(backendinternal.New(s)).(backend.Backend)
+	s.components.frontend = s.AddComponent(frontendinternal.New(s)).(frontend.Component)
+	s.components.backend = s.AddComponent(backendinternal.New(s)).(backend.Component)
 
 	return s
 }
@@ -109,5 +109,5 @@ func (s *server) onUpdate(now time.Time, dt time.Duration) {
 	s.BaseService.Update(now, dt)
 }
 
-func (s *server) Frontend() frontend.Frontend { return s.components.frontend }
-func (s *server) Backend() backend.Backend    { return s.components.backend }
+func (s *server) Frontend() frontend.Component { return s.components.frontend }
+func (s *server) Backend() backend.Component   { return s.components.backend }
