@@ -1,8 +1,12 @@
 package frontendinternal
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/gopherd/doge/proto"
 )
@@ -35,12 +39,14 @@ func init() {
 		format: "[command]",
 		usage:  "show help information",
 		run: func(f *frontendComponent, sess *session, args []string) error {
-			var cmds []*command
+			var (
+				cmds []*command
+			)
 			if len(args) > 0 {
 				for i := range args {
 					cmd := commands[strings.ToLower(args[i])]
 					if cmd == nil {
-						return sess.println("command", args[i], "not found")
+						return errorln(sess, "command ", args[i], " not found")
 					}
 					cmds = append(cmds, cmd)
 				}
@@ -52,21 +58,16 @@ func init() {
 					return cmds[i].name < cmds[j].name
 				})
 			}
+			p := getPrinter()
 			for _, cmd := range cmds {
 				if cmd.format != "" {
-					if err := sess.println("."+cmd.name+" ", cmd.format); err != nil {
-						return err
-					}
+					p.println("."+cmd.name+" ", cmd.format)
 				} else {
-					if err := sess.println("." + cmd.name); err != nil {
-						return err
-					}
+					p.println("." + cmd.name)
 				}
-				if err := sess.println("\t" + cmd.usage); err != nil {
-					return err
-				}
+				p.println("\t" + cmd.usage)
 			}
-			return nil
+			return p.flush(sess)
 		},
 	})
 
@@ -75,7 +76,7 @@ func init() {
 		name:  "ping",
 		usage: "ping the server",
 		run: func(f *frontendComponent, sess *session, args []string) error {
-			return sess.println("pong")
+			return getPrinter().println("pong").flush(sess)
 		},
 	})
 
@@ -85,17 +86,14 @@ func init() {
 		format: "[content]",
 		usage:  "echo content",
 		run: func(f *frontendComponent, sess *session, args []string) error {
+			p := getPrinter()
 			for i := range args {
 				if i > 0 {
-					if err := sess.print(" "); err != nil {
-						return err
-					}
+					p.print(" ")
 				}
-				if err := sess.print(args[i]); err != nil {
-					return err
-				}
+				p.print(args[i])
 			}
-			return sess.println()
+			return p.flush(sess)
 		},
 	})
 
@@ -106,14 +104,80 @@ func init() {
 		usage:  "send message by type with json formatted content",
 		run: func(f *frontendComponent, sess *session, args []string) error {
 			if len(args) < 1 {
-				return sess.println("argument <type> required")
+				return errorln(sess, "argument <type> required")
 			}
 			typ, err := proto.ParseType(args[0])
 			if err != nil {
-				return sess.println("argument <type> invalid")
+				return errorln(sess, "argument <type> invalid")
 			}
 			body := proto.Text([]byte(strings.Join(args[1:], "")))
 			return f.onMessage(sess, proto.Type(typ), body)
 		},
 	})
+}
+
+var (
+	crlf = []byte{'\r', '\n'}
+	pp   = sync.Pool{
+		New: func() interface{} {
+			return new(printer)
+		},
+	}
+)
+
+type printer struct {
+	err error
+	buf bytes.Buffer
+}
+
+func getPrinter() *printer {
+	p := pp.Get().(*printer)
+	p.reset()
+	return p
+}
+
+func (p *printer) reset() {
+	p.err = nil
+	p.buf.Reset()
+}
+
+func (p *printer) lazyInit() {
+	if p.buf.Len() == 0 {
+		p.buf.WriteByte(proto.TextResponseType)
+	}
+}
+
+func errorln(w io.Writer, a ...interface{}) error {
+	p := getPrinter()
+	p.buf.WriteByte(proto.TextErrorType)
+	return p.println(a...).flush(w)
+}
+
+func (p *printer) print(a ...interface{}) *printer {
+	if p.err == nil {
+		p.lazyInit()
+		_, p.err = fmt.Fprint(&p.buf, a...)
+	}
+	return p
+}
+
+func (p *printer) println(a ...interface{}) *printer {
+	if p.err == nil {
+		p.lazyInit()
+		_, p.err = fmt.Fprint(&p.buf, a...)
+		p.buf.Write(crlf)
+	}
+	return p
+}
+
+func (p *printer) flush(w io.Writer) error {
+	if p.err == nil {
+		if !bytes.HasSuffix(p.buf.Bytes(), crlf) {
+			p.buf.Write(crlf)
+		}
+		_, p.err = w.Write(p.buf.Bytes())
+	}
+	err := p.err
+	pp.Put(p)
+	return err
 }

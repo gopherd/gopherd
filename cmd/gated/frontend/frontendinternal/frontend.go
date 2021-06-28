@@ -324,7 +324,7 @@ func (f *frontendComponent) onTextMessage(sess *session, args []string) error {
 			if errors.Is(err, proto.ErrTypeOverflow) {
 				return err
 			}
-			return sess.println("command " + args[0] + " not found, run .help to list all supported commands")
+			return errorln(sess, "command "+args[0]+" not found, run .help to list all supported commands")
 		}
 		body := proto.Text([]byte(strings.Join(args[1:], "")))
 		return f.onMessage(sess, typ, body)

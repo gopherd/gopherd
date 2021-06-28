@@ -1,21 +1,17 @@
 package frontendinternal
 
 import (
-	"fmt"
 	"net"
 	"strconv"
 	"sync/atomic"
 	"time"
 
-	"github.com/gopherd/doge/erron"
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/text/shell"
 	"github.com/gopherd/jwt"
 	"github.com/gopherd/log"
 )
-
-var crlf = []byte{'\r', '\n'}
 
 // session state enumerator
 type state int
@@ -140,7 +136,7 @@ func (s *session) OnMessage(typ proto.Type, body proto.Body) error {
 
 func (s *session) onTextMessage(typ proto.Type, body proto.Body) error {
 	if typ != '.' {
-		s.println("command should starts with '.', e.g. .echo hello")
+		errorln(s, "command should starts with '.', e.g. .echo hello")
 		return nil
 	}
 	lexer := shell.NewLexer(body)
@@ -148,10 +144,8 @@ func (s *session) onTextMessage(typ proto.Type, body proto.Body) error {
 	for {
 		word, end, err := lexer.Next()
 		if err != nil {
-			if e := s.println(err.Error()); err != nil {
-				return e
-			}
-			return erron.New("invalid text message %w", err)
+			errorln(s, err.Error())
+			return err
 		}
 		if word != nil {
 			s.cache.args = append(s.cache.args, string(word))
@@ -191,19 +185,6 @@ func (sess *session) send(m proto.Message) error {
 		return err
 	}
 	_, err := sess.Write(buf.Bytes())
-	return err
-}
-
-func (sess *session) print(a ...interface{}) error {
-	_, err := fmt.Fprint(sess, a...)
-	return err
-}
-
-func (sess *session) println(a ...interface{}) error {
-	if _, err := fmt.Fprint(sess, a...); err != nil {
-		return err
-	}
-	_, err := sess.Write(crlf)
 	return err
 }
 
