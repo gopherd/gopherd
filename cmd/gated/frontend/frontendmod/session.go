@@ -8,7 +8,7 @@ import (
 
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/doge/proto"
-	"github.com/gopherd/doge/text/shell"
+	"github.com/gopherd/doge/text/resp"
 	"github.com/gopherd/jwt"
 	"github.com/gopherd/log"
 )
@@ -42,7 +42,7 @@ type handler interface {
 	onReady(*session)
 	onClose(*session, error)
 	onMessage(*session, proto.Type, proto.Body) error
-	onTextMessage(*session, []string) error
+	onCommand(*session, *resp.Command) error
 }
 
 // session holds a context for each connection
@@ -67,10 +67,6 @@ type session struct {
 			send int64
 		}
 		// (TODO): limiter
-	}
-
-	cache struct {
-		args []string
 	}
 }
 
@@ -128,36 +124,13 @@ func (s *session) OnHandshake(contentType proto.ContentType) error {
 func (s *session) OnMessage(typ proto.Type, body proto.Body) error {
 	atomic.AddInt64(&s.internal.stats.recv, int64(body.Len()))
 	s.keepalive()
-	if proto.IsTextproto(s.ContentType()) {
-		return s.onTextMessage(typ, body)
-	}
 	return s.handler.onMessage(s, typ, body)
 }
 
-func (s *session) onTextMessage(typ proto.Type, body proto.Body) error {
-	if typ != '.' {
-		errorln(s, "command should starts with '.', e.g. .echo hello")
-		return nil
-	}
-	lexer := shell.NewLexer(body)
-	s.cache.args = s.cache.args[:0]
-	for {
-		word, end, err := lexer.Next()
-		if err != nil {
-			errorln(s, err.Error())
-			return err
-		}
-		if word != nil {
-			s.cache.args = append(s.cache.args, string(word))
-		}
-		if end {
-			break
-		}
-	}
-	if len(s.cache.args) == 0 {
-		return nil
-	}
-	return s.handler.onTextMessage(s, s.cache.args)
+// OnCommand implements netutil.CommandHandler OnCommand method
+func (s *session) OnCommand(cmd *resp.Command) error {
+	s.keepalive()
+	return s.handler.onCommand(s, cmd)
 }
 
 // serve runs the session read/write loops
@@ -172,10 +145,10 @@ func (s *session) Write(data []byte) (int, error) {
 }
 
 // Close closes the session
-func (s *session) Close() error {
-	s.logger.Debug().Print("close session")
+func (s *session) Close(err error) {
+	s.logger.Debug().Error("error", err).Print("close session")
 	s.setState(stateClosing)
-	return s.internal.session.Close()
+	s.internal.session.Close(err)
 }
 
 func (sess *session) send(m proto.Message) error {

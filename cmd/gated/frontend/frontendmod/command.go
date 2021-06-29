@@ -2,20 +2,21 @@ package frontendmod
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/gopherd/doge/proto"
+	"github.com/gopherd/doge/text/resp"
 )
 
 type command struct {
 	name   string
 	format string
 	usage  string
-	run    func(*frontendModule, *session, []string) error
+	run    func(*frontendModule, *session, *resp.Command) error
 }
 
 var (
@@ -33,22 +34,23 @@ func register(cmd *command) {
 }
 
 func init() {
-	// .help [command]
+	// command [command]
 	register(&command{
-		name:   "help",
-		format: "[command]",
-		usage:  "show help information",
-		run: func(f *frontendModule, sess *session, args []string) error {
+		name:   "command",
+		format: "[commands...]",
+		usage:  "show commands help information",
+		run: func(f *frontendModule, sess *session, cmd *resp.Command) error {
 			var (
 				cmds []*command
 			)
-			if len(args) > 0 {
-				for i := range args {
-					cmd := commands[strings.ToLower(args[i])]
-					if cmd == nil {
-						return errorln(sess, "command ", args[i], " not found")
+			if n := cmd.NumArg(); n > 0 {
+				for i := 0; i < n; i++ {
+					name := string(cmd.Arg(i).Value())
+					c := commands[strings.ToLower(name)]
+					if c == nil {
+						return errorln(sess, "command", name, "not found")
 					}
-					cmds = append(cmds, cmd)
+					cmds = append(cmds, c)
 				}
 			} else {
 				for _, cmd := range commands {
@@ -59,59 +61,83 @@ func init() {
 				})
 			}
 			p := getPrinter()
-			for _, cmd := range cmds {
-				if cmd.format != "" {
-					p.println("."+cmd.name+" ", cmd.format)
+			p.setType(resp.ArrayType.Byte())
+			p.println(strconv.Itoa(len(cmds)))
+			alignSize := 0
+			prefix := string(resp.StringType.Byte())
+			for _, c := range cmds {
+				var size int
+				if c.format != "" {
+					size = len(prefix) + len(c.name) + len(c.format) + 1
 				} else {
-					p.println("." + cmd.name)
+					size = len(prefix) + len(c.name)
 				}
-				p.println("\t" + cmd.usage)
+				if size > alignSize {
+					alignSize = size
+				}
+			}
+
+			for _, c := range cmds {
+				var left string
+				if c.format != "" {
+					left = prefix + c.name + " " + c.format
+				} else {
+					left = prefix + c.name
+				}
+				p.println(left + strings.Repeat(" ", alignSize-len(left)+4) + c.usage)
 			}
 			return p.flush(sess)
 		},
 	})
 
-	// .ping [content]
+	// ping [content]
 	register(&command{
 		name:  "ping",
 		usage: "ping the server",
-		run: func(f *frontendModule, sess *session, args []string) error {
+		run: func(f *frontendModule, sess *session, cmd *resp.Command) error {
 			return getPrinter().println("pong").flush(sess)
 		},
 	})
 
-	// .echo [content]
+	// echo [content]
 	register(&command{
 		name:   "echo",
 		format: "[content]",
 		usage:  "echo content",
-		run: func(f *frontendModule, sess *session, args []string) error {
+		run: func(f *frontendModule, sess *session, cmd *resp.Command) error {
 			p := getPrinter()
-			for i := range args {
+			for i, n := 0, cmd.NumArg(); i < n; i++ {
 				if i > 0 {
 					p.print(" ")
 				}
-				p.print(args[i])
+				p.print(string(cmd.Arg(i).Value()))
 			}
 			return p.flush(sess)
 		},
 	})
 
-	// .send <type> [json]
+	// send <type> [json]
 	register(&command{
 		name:   "send",
 		format: "<type> [json]",
 		usage:  "send message by type with json formatted content",
-		run: func(f *frontendModule, sess *session, args []string) error {
-			if len(args) < 1 {
+		run: func(f *frontendModule, sess *session, cmd *resp.Command) error {
+			argc := cmd.NumArg()
+			if argc < 1 {
 				return errorln(sess, "argument <type> required")
 			}
-			typ, err := proto.ParseType(args[0])
+			typ, err := proto.ParseType(string(cmd.Arg(0).Value()))
 			if err != nil {
 				return errorln(sess, "argument <type> invalid")
 			}
-			body := proto.Text([]byte(strings.Join(args[1:], "")))
-			return f.onMessage(sess, proto.Type(typ), body)
+			switch argc {
+			case 1:
+				return f.onMessage(sess, typ, proto.Text(nil))
+			case 2:
+				return f.onMessage(sess, typ, proto.Text(cmd.Arg(1).Value()))
+			default:
+				return resp.ErrNumberOfArguments
+			}
 		},
 	})
 }
@@ -143,28 +169,40 @@ func (p *printer) reset() {
 
 func (p *printer) lazyInit() {
 	if p.buf.Len() == 0 {
-		p.buf.WriteByte(proto.TextResponseType)
+		p.buf.WriteByte(resp.StringType.Byte())
 	}
 }
 
-func errorln(w io.Writer, a ...interface{}) error {
+func errorln(w io.Writer, a ...string) error {
 	p := getPrinter()
-	p.buf.WriteByte(proto.TextErrorType)
+	p.buf.WriteByte(resp.ErrorType.Byte())
 	return p.println(a...).flush(w)
 }
 
-func (p *printer) print(a ...interface{}) *printer {
+func (p *printer) setType(b byte) {
+	if p.buf.Len() == 0 {
+		p.buf.WriteByte(b)
+	} else {
+		p.buf.Bytes()[0] = b
+	}
+}
+
+func (p *printer) print(a ...string) *printer {
 	if p.err == nil {
 		p.lazyInit()
-		_, p.err = fmt.Fprint(&p.buf, a...)
+		for i := range a {
+			if i > 0 {
+				p.buf.WriteByte(' ')
+			}
+			p.buf.WriteString(a[i])
+		}
 	}
 	return p
 }
 
-func (p *printer) println(a ...interface{}) *printer {
+func (p *printer) println(a ...string) *printer {
 	if p.err == nil {
-		p.lazyInit()
-		_, p.err = fmt.Fprint(&p.buf, a...)
+		p.print(a...)
 		p.buf.Write(crlf)
 	}
 	return p

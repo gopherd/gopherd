@@ -2,21 +2,19 @@ syntax = "proto3";
 
 package gatepb;
 
-option csharp_namespace = "gopherd.gatepb";
+option csharp_namespace = "proto.gatepb";
 option go_package = "proto/gatepb";
 option optimize_for = LITE_RUNTIME;
 
-message Session {
-	int32 gid = 1;
-	int64 uid = 2;
-	bytes ip = 3;
-}
-
 // @Type(151)
 message Request {
-	Session session = 1;
-	int32 contentType = 2;
-	bytes content = 3;
+	// session fields
+	int32 gid = 1; // gate id
+	int64 uid = 2; // user id
+	bytes ip = 3; // ip bytes
+
+	int32 contentType = 10;
+	bytes content = 11;
 }
 
 // @Type(152)

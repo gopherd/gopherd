@@ -2,15 +2,9 @@ syntax = "proto3";
 
 package gatepb;
 
-option csharp_namespace = "gopherd.gatepb";
+option csharp_namespace = "proto.gatepb";
 option go_package = "proto/gatepb";
 option optimize_for = LITE_RUNTIME;
-
-// optional message header
-message Header {
-	int32 version = 1;
-	int32 request_id = 2;
-}
 
 // @Type(131)
 message Ping {

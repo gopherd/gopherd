@@ -21,6 +21,7 @@ import (
 	"github.com/gopherd/doge/service"
 	"github.com/gopherd/doge/service/discovery"
 	"github.com/gopherd/doge/service/module"
+	"github.com/gopherd/doge/text/resp"
 	"github.com/gopherd/jwt"
 
 	"github.com/gopherd/gopherd/cmd/gated/backend"
@@ -131,7 +132,7 @@ func (f *frontendModule) Shutdown() {
 		if state := s.getState(); state == stateClosing || state == stateOverflow {
 			continue
 		}
-		s.Close()
+		s.Close(nil)
 	}
 }
 
@@ -157,10 +158,13 @@ func (f *frontendModule) add(s *session) (n int, ok bool) {
 func (f *frontendModule) remove(id int64) *session {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
+
 	s, ok := f.sessions[id]
 	if !ok {
 		return nil
 	}
+	delete(f.sessions, id)
+
 	ip := s.ip
 	if n, ok := f.ips[ip]; n > 1 {
 		f.ips[ip] = n - 1
@@ -218,7 +222,7 @@ func (f *frontendModule) clean(ttl, now int64) {
 	for sid, s := range f.sessions {
 		if s.getLastKeepaliveTime()+ttl < now {
 			f.Logger().Debug().Int64("sid", sid).Print("clean dead session")
-			s.Close()
+			s.Close(nil)
 		}
 	}
 }
@@ -315,21 +319,27 @@ func (f *frontendModule) onMessage(sess *session, typ proto.Type, body proto.Bod
 	return err
 }
 
-// onTextMessage implements handler onTextMessage method
-func (f *frontendModule) onTextMessage(sess *session, args []string) error {
-	cmd := commands[strings.ToLower(args[0])]
-	if cmd == nil {
-		typ, err := proto.ParseType(args[0])
+// onCommand implements handler onCommand method
+func (f *frontendModule) onCommand(sess *session, cmd *resp.Command) error {
+	c := commands[strings.ToLower(cmd.Name())]
+	if c == nil {
+		typ, err := proto.ParseType(cmd.Name())
 		if err != nil {
 			if errors.Is(err, proto.ErrTypeOverflow) {
 				return err
 			}
-			return errorln(sess, "command "+args[0]+" not found, run .help to list all supported commands")
+			return errorln(sess, "command "+cmd.Name()+" not found, run command to list all supported commands")
 		}
-		body := proto.Text([]byte(strings.Join(args[1:], "")))
-		return f.onMessage(sess, typ, body)
+		switch cmd.NumArg() {
+		case 0:
+			return f.onMessage(sess, typ, proto.Text(nil))
+		case 1:
+			return f.onMessage(sess, typ, proto.Text(cmd.Arg(0).Value()))
+		default:
+			return resp.ErrNumberOfArguments
+		}
 	}
-	return cmd.run(f, sess, args[1:])
+	return c.run(f, sess, cmd)
 }
 
 func (f *frontendModule) unmarshal(sess *session, typ proto.Type, body proto.Body) (proto.Message, error) {
@@ -488,6 +498,6 @@ func (f *frontendModule) Kickout(uid int64, reason gatepb.KickoutReason) error {
 		Reason: int32(reason),
 	}
 	sess.send(kickout)
-	sess.Close()
+	sess.Close(nil)
 	return nil
 }
