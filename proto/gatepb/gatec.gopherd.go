@@ -5,6 +5,7 @@ package gatepb
 import registry "github.com/gopherd/doge/proto"
 
 const (
+	ErrorType   = 130
 	PingType    = 131
 	PongType    = 132
 	LoginType   = 133
@@ -13,6 +14,7 @@ const (
 )
 
 func init() {
+	registry.Register("gatepb", ErrorType, func() registry.Message { return new(Error) })
 	registry.Register("gatepb", PingType, func() registry.Message { return new(Ping) })
 	registry.Register("gatepb", PongType, func() registry.Message { return new(Pong) })
 	registry.Register("gatepb", LoginType, func() registry.Message { return new(Login) })
@@ -20,6 +22,7 @@ func init() {
 	registry.Register("gatepb", KickoutType, func() registry.Message { return new(Kickout) })
 }
 
+func (*Error) Type() registry.Type   { return ErrorType }
 func (*Ping) Type() registry.Type    { return PingType }
 func (*Pong) Type() registry.Type    { return PongType }
 func (*Login) Type() registry.Type   { return LoginType }

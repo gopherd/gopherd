@@ -72,6 +72,62 @@ func (KickoutReason) EnumDescriptor() ([]byte, []int) {
 	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{0}
 }
 
+// @Type(130)
+type Error struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Errno       int32  `protobuf:"varint,1,opt,name=errno,proto3" json:"errno,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+}
+
+func (x *Error) Reset() {
+	*x = Error{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[0]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Error) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Error) ProtoMessage() {}
+
+func (x *Error) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[0]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Error.ProtoReflect.Descriptor instead.
+func (*Error) Descriptor() ([]byte, []int) {
+	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Error) GetErrno() int32 {
+	if x != nil {
+		return x.Errno
+	}
+	return 0
+}
+
+func (x *Error) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
 // @Type(131)
 type Ping struct {
 	state         protoimpl.MessageState
@@ -84,7 +140,7 @@ type Ping struct {
 func (x *Ping) Reset() {
 	*x = Ping{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[0]
+		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -97,7 +153,7 @@ func (x *Ping) String() string {
 func (*Ping) ProtoMessage() {}
 
 func (x *Ping) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[0]
+	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +166,7 @@ func (x *Ping) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Ping.ProtoReflect.Descriptor instead.
 func (*Ping) Descriptor() ([]byte, []int) {
-	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{0}
+	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Ping) GetContent() string {
@@ -132,7 +188,7 @@ type Pong struct {
 func (x *Pong) Reset() {
 	*x = Pong{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[1]
+		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -145,7 +201,7 @@ func (x *Pong) String() string {
 func (*Pong) ProtoMessage() {}
 
 func (x *Pong) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[1]
+	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -158,7 +214,7 @@ func (x *Pong) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pong.ProtoReflect.Descriptor instead.
 func (*Pong) Descriptor() ([]byte, []int) {
-	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{1}
+	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Pong) GetContent() string {
@@ -181,7 +237,7 @@ type Login struct {
 func (x *Login) Reset() {
 	*x = Login{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[2]
+		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -194,7 +250,7 @@ func (x *Login) String() string {
 func (*Login) ProtoMessage() {}
 
 func (x *Login) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[2]
+	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -207,7 +263,7 @@ func (x *Login) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Login.ProtoReflect.Descriptor instead.
 func (*Login) Descriptor() ([]byte, []int) {
-	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{2}
+	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Login) GetToken() string {
@@ -234,7 +290,7 @@ type Logout struct {
 func (x *Logout) Reset() {
 	*x = Logout{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[3]
+		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -247,7 +303,7 @@ func (x *Logout) String() string {
 func (*Logout) ProtoMessage() {}
 
 func (x *Logout) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[3]
+	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -260,7 +316,7 @@ func (x *Logout) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Logout.ProtoReflect.Descriptor instead.
 func (*Logout) Descriptor() ([]byte, []int) {
-	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{3}
+	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{4}
 }
 
 // @Type(135)
@@ -275,7 +331,7 @@ type Kickout struct {
 func (x *Kickout) Reset() {
 	*x = Kickout{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[4]
+		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -288,7 +344,7 @@ func (x *Kickout) String() string {
 func (*Kickout) ProtoMessage() {}
 
 func (x *Kickout) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[4]
+	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -301,7 +357,7 @@ func (x *Kickout) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Kickout.ProtoReflect.Descriptor instead.
 func (*Kickout) Descriptor() ([]byte, []int) {
-	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{4}
+	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Kickout) GetReason() int32 {
@@ -316,26 +372,30 @@ var File_proto_protobuf_gatepb_gatec_proto protoreflect.FileDescriptor
 var file_proto_protobuf_gatepb_gatec_proto_rawDesc = []byte{
 	0x0a, 0x21, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66,
 	0x2f, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62, 0x2f, 0x67, 0x61, 0x74, 0x65, 0x63, 0x2e, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x12, 0x06, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62, 0x22, 0x20, 0x0a, 0x04, 0x50,
-	0x69, 0x6e, 0x67, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x22, 0x20, 0x0a,
-	0x04, 0x50, 0x6f, 0x6e, 0x67, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x22,
-	0x39, 0x0a, 0x05, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x6b, 0x65,
-	0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x12, 0x1a,
-	0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c,
-	0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x64, 0x61, 0x74, 0x61, 0x22, 0x08, 0x0a, 0x06, 0x4c, 0x6f,
-	0x67, 0x6f, 0x75, 0x74, 0x22, 0x21, 0x0a, 0x07, 0x4b, 0x69, 0x63, 0x6b, 0x6f, 0x75, 0x74, 0x12,
-	0x16, 0x0a, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52,
-	0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x2a, 0x56, 0x0a, 0x0d, 0x4b, 0x69, 0x63, 0x6b, 0x6f,
-	0x75, 0x74, 0x52, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x12, 0x11, 0x0a, 0x0d, 0x53, 0x65, 0x72, 0x76,
-	0x69, 0x63, 0x65, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x64, 0x10, 0x00, 0x12, 0x0e, 0x0a, 0x0a, 0x55,
-	0x73, 0x65, 0x72, 0x4c, 0x6f, 0x67, 0x6f, 0x75, 0x74, 0x10, 0x01, 0x12, 0x16, 0x0a, 0x12, 0x4c,
-	0x6f, 0x67, 0x69, 0x6e, 0x41, 0x6e, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x44, 0x65, 0x76, 0x69, 0x63,
-	0x65, 0x10, 0x02, 0x12, 0x0a, 0x0a, 0x06, 0x46, 0x72, 0x6f, 0x7a, 0x65, 0x6e, 0x10, 0x03, 0x42,
-	0x1f, 0x48, 0x03, 0x5a, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x61, 0x74, 0x65, 0x70,
-	0x62, 0xaa, 0x02, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6f, 0x74, 0x6f, 0x12, 0x06, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62, 0x22, 0x3f, 0x0a, 0x05, 0x45,
+	0x72, 0x72, 0x6f, 0x72, 0x12, 0x14, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6e, 0x6f, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x05, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6e, 0x6f, 0x12, 0x20, 0x0a, 0x0b, 0x64, 0x65,
+	0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x20, 0x0a, 0x04,
+	0x50, 0x69, 0x6e, 0x67, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x22, 0x20,
+	0x0a, 0x04, 0x50, 0x6f, 0x6e, 0x67, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e,
+	0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74,
+	0x22, 0x39, 0x0a, 0x05, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x6b,
+	0x65, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x12,
+	0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x0c, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x64, 0x61, 0x74, 0x61, 0x22, 0x08, 0x0a, 0x06, 0x4c,
+	0x6f, 0x67, 0x6f, 0x75, 0x74, 0x22, 0x21, 0x0a, 0x07, 0x4b, 0x69, 0x63, 0x6b, 0x6f, 0x75, 0x74,
+	0x12, 0x16, 0x0a, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05,
+	0x52, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x2a, 0x56, 0x0a, 0x0d, 0x4b, 0x69, 0x63, 0x6b,
+	0x6f, 0x75, 0x74, 0x52, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x12, 0x11, 0x0a, 0x0d, 0x53, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x64, 0x10, 0x00, 0x12, 0x0e, 0x0a, 0x0a,
+	0x55, 0x73, 0x65, 0x72, 0x4c, 0x6f, 0x67, 0x6f, 0x75, 0x74, 0x10, 0x01, 0x12, 0x16, 0x0a, 0x12,
+	0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x41, 0x6e, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x44, 0x65, 0x76, 0x69,
+	0x63, 0x65, 0x10, 0x02, 0x12, 0x0a, 0x0a, 0x06, 0x46, 0x72, 0x6f, 0x7a, 0x65, 0x6e, 0x10, 0x03,
+	0x42, 0x1f, 0x48, 0x03, 0x5a, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x61, 0x74, 0x65,
+	0x70, 0x62, 0xaa, 0x02, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x67, 0x61, 0x74, 0x65, 0x70,
+	0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -351,14 +411,15 @@ func file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_protobuf_gatepb_gatec_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_protobuf_gatepb_gatec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_proto_protobuf_gatepb_gatec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_proto_protobuf_gatepb_gatec_proto_goTypes = []interface{}{
 	(KickoutReason)(0), // 0: gatepb.KickoutReason
-	(*Ping)(nil),       // 1: gatepb.Ping
-	(*Pong)(nil),       // 2: gatepb.Pong
-	(*Login)(nil),      // 3: gatepb.Login
-	(*Logout)(nil),     // 4: gatepb.Logout
-	(*Kickout)(nil),    // 5: gatepb.Kickout
+	(*Error)(nil),      // 1: gatepb.Error
+	(*Ping)(nil),       // 2: gatepb.Ping
+	(*Pong)(nil),       // 3: gatepb.Pong
+	(*Login)(nil),      // 4: gatepb.Login
+	(*Logout)(nil),     // 5: gatepb.Logout
+	(*Kickout)(nil),    // 6: gatepb.Kickout
 }
 var file_proto_protobuf_gatepb_gatec_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -375,7 +436,7 @@ func file_proto_protobuf_gatepb_gatec_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_proto_protobuf_gatepb_gatec_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Ping); i {
+			switch v := v.(*Error); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -387,7 +448,7 @@ func file_proto_protobuf_gatepb_gatec_proto_init() {
 			}
 		}
 		file_proto_protobuf_gatepb_gatec_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Pong); i {
+			switch v := v.(*Ping); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -399,7 +460,7 @@ func file_proto_protobuf_gatepb_gatec_proto_init() {
 			}
 		}
 		file_proto_protobuf_gatepb_gatec_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Login); i {
+			switch v := v.(*Pong); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -411,7 +472,7 @@ func file_proto_protobuf_gatepb_gatec_proto_init() {
 			}
 		}
 		file_proto_protobuf_gatepb_gatec_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Logout); i {
+			switch v := v.(*Login); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -423,6 +484,18 @@ func file_proto_protobuf_gatepb_gatec_proto_init() {
 			}
 		}
 		file_proto_protobuf_gatepb_gatec_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Logout); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_protobuf_gatepb_gatec_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Kickout); i {
 			case 0:
 				return &v.state
@@ -441,7 +514,7 @@ func file_proto_protobuf_gatepb_gatec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_protobuf_gatepb_gatec_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

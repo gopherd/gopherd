@@ -6,6 +6,12 @@ option csharp_namespace = "proto.gatepb";
 option go_package = "proto/gatepb";
 option optimize_for = LITE_RUNTIME;
 
+// @Type(130)
+message Error {
+	int32 errno = 1;
+	string description = 2;
+}
+
 // @Type(131)
 message Ping {
 	string content = 1;

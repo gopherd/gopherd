@@ -79,6 +79,10 @@ func (s *server) Shutdown() error {
 	return nil
 }
 
+func (s *server) Busy() bool {
+	return s.BaseService.Busy() || s.modules.frontend.Busy() || s.modules.backend.Busy()
+}
+
 // run runs service's main loop
 func (s *server) run() {
 	ticker := time.NewTicker(time.Millisecond * 100)

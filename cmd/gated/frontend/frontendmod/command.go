@@ -39,13 +39,13 @@ func init() {
 		name:   "command",
 		format: "[commands...]",
 		usage:  "show commands help information",
-		run: func(f *frontendModule, sess *session, cmd *resp.Command) error {
+		run: func(mod *frontendModule, sess *session, cmd *resp.Command) error {
 			var (
 				cmds []*command
 			)
-			if n := cmd.NumArg(); n > 0 {
+			if n := cmd.NArg(); n > 0 {
 				for i := 0; i < n; i++ {
-					name := string(cmd.Arg(i).Value())
+					name := cmd.Arg(i)
 					c := commands[strings.ToLower(name)]
 					if c == nil {
 						return errorln(sess, "command", name, "not found")
@@ -94,7 +94,7 @@ func init() {
 	register(&command{
 		name:  "ping",
 		usage: "ping the server",
-		run: func(f *frontendModule, sess *session, cmd *resp.Command) error {
+		run: func(mod *frontendModule, sess *session, cmd *resp.Command) error {
 			return getPrinter().println("pong").flush(sess)
 		},
 	})
@@ -104,13 +104,13 @@ func init() {
 		name:   "echo",
 		format: "[content]",
 		usage:  "echo content",
-		run: func(f *frontendModule, sess *session, cmd *resp.Command) error {
+		run: func(mod *frontendModule, sess *session, cmd *resp.Command) error {
 			p := getPrinter()
-			for i, n := 0, cmd.NumArg(); i < n; i++ {
+			for i, n := 0, cmd.NArg(); i < n; i++ {
 				if i > 0 {
 					p.print(" ")
 				}
-				p.print(string(cmd.Arg(i).Value()))
+				p.print(cmd.Arg(i))
 			}
 			return p.flush(sess)
 		},
@@ -121,20 +121,20 @@ func init() {
 		name:   "send",
 		format: "<type> [json]",
 		usage:  "send message by type with json formatted content",
-		run: func(f *frontendModule, sess *session, cmd *resp.Command) error {
-			argc := cmd.NumArg()
+		run: func(mod *frontendModule, sess *session, cmd *resp.Command) error {
+			argc := cmd.NArg()
 			if argc < 1 {
 				return errorln(sess, "argument <type> required")
 			}
-			typ, err := proto.ParseType(string(cmd.Arg(0).Value()))
+			typ, err := proto.ParseType(cmd.Arg(0))
 			if err != nil {
 				return errorln(sess, "argument <type> invalid")
 			}
 			switch argc {
 			case 1:
-				return f.onMessage(sess, typ, proto.Text(nil))
+				return mod.onMessage(sess, typ, proto.Text(nil))
 			case 2:
-				return f.onMessage(sess, typ, proto.Text(cmd.Arg(1).Value()))
+				return mod.onMessage(sess, typ, proto.Text([]byte(cmd.Arg(1))))
 			default:
 				return resp.ErrNumberOfArguments
 			}

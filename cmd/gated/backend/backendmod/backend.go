@@ -40,46 +40,52 @@ func newBackendModule(service Service) *backendModule {
 	}
 }
 
-func (b *backendModule) Init() error {
-	if err := b.BaseModule.Init(); err != nil {
+// Init overrides BaseModule Init method
+func (mod *backendModule) Init() error {
+	if err := mod.BaseModule.Init(); err != nil {
 		return err
 	}
-	topic := b.service.Name() + "/" + strconv.FormatInt(b.service.ID(), 10)
-	b.service.MQ().Subscribe(topic, mq.FuncConsumer(b.consume))
+	topic := mod.service.Name() + "/" + strconv.FormatInt(mod.service.ID(), 10)
+	mod.service.MQ().Subscribe(topic, mq.FuncConsumer(mod.consume))
 	return nil
 }
 
-func (b *backendModule) consume(topic string, msg []byte, err error) {
+// Busy implements backend.Module Busy method
+func (mod *backendModule) Busy() bool {
+	return false
+}
+
+func (mod *backendModule) consume(topic string, msg []byte, err error) {
 	if err != nil {
-		b.Logger().Warn().
+		mod.Logger().Warn().
 			Error("error", err).
 			Print("mq consume error")
 		return
 	}
 	n, m, err := proto.Decode(msg)
 	if err != nil {
-		b.Logger().Error().
+		mod.Logger().Error().
 			Int("size", len(msg)).
 			Error("error", err).
 			Print("unmarshal mq message error")
 		return
 	}
-	b.Logger().Debug().
+	mod.Logger().Debug().
 		Int("size", len(msg)).
 		Int("read", n).
 		Int("type", int(m.Type())).
 		Print("received a message from mq")
 	switch ptc := m.(type) {
 	case *gatepb.Broadcast:
-		b.onBroadcast(ptc)
+		mod.onBroadcast(ptc)
 	case *gatepb.Response:
-		b.onResponse(ptc)
+		mod.onResponse(ptc)
 	case *gatepb.Ping:
-		b.onPing(ptc)
+		mod.onPing(ptc)
 	case *gatepb.Pong:
-		b.onPong(ptc)
+		mod.onPong(ptc)
 	default:
-		b.Logger().Warn().
+		mod.Logger().Warn().
 			Int("size", len(msg)).
 			Int("type", int(m.Type())).
 			String("name", proto.Nameof(m)).
@@ -87,33 +93,35 @@ func (b *backendModule) consume(topic string, msg []byte, err error) {
 	}
 }
 
-func (b *backendModule) onBroadcast(ptc *gatepb.Broadcast) {
+func (mod *backendModule) onBroadcast(ptc *gatepb.Broadcast) {
 	if len(ptc.Uids) == 0 {
-		b.service.Frontend().BroadcastAll(ptc.Content)
+		mod.service.Frontend().BroadcastAll(ptc.Content)
 	} else {
-		b.service.Frontend().Broadcast(ptc.Uids, ptc.Content)
+		mod.service.Frontend().Broadcast(ptc.Uids, ptc.Content)
 	}
 }
 
-func (b *backendModule) onResponse(ptc *gatepb.Response) {
-	b.service.Frontend().Send(ptc.Uid, ptc.Content)
+func (mod *backendModule) onResponse(ptc *gatepb.Response) {
+	mod.service.Frontend().Write(ptc.Uid, ptc.Content)
 }
 
-func (b *backendModule) onPing(ptc *gatepb.Ping) {
+func (mod *backendModule) onPing(ptc *gatepb.Ping) {
 }
 
-func (b *backendModule) onPong(ptc *gatepb.Pong) {
+func (mod *backendModule) onPong(ptc *gatepb.Pong) {
 }
 
-// Forward forwards message from frontend to backend
-func (b *backendModule) Forward(uid int64, typ proto.Type, body proto.Body) error {
+// Forward implements backend.Module Forward method
+func (mod *backendModule) Forward(uid int64, typ proto.Type, body proto.Body) error {
 	return nil
 }
 
-func (b *backendModule) Login(uid int64, claims *jwt.Claims, userdata []byte) error {
+// Login implements backend.Module Login method
+func (mod *backendModule) Login(uid int64, claims *jwt.Claims, userdata []byte) error {
 	return nil
 }
 
-func (b *backendModule) Logout(uid int64) error {
+// Logout implements backend.Module Logout method
+func (mod *backendModule) Logout(uid int64) error {
 	return nil
 }

@@ -3,6 +3,7 @@ package frontendmod
 import (
 	"net"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -66,6 +67,7 @@ type session struct {
 			recv int64
 			send int64
 		}
+		writerMu sync.Mutex
 		// (TODO): limiter
 	}
 }
@@ -141,6 +143,8 @@ func (s *session) serve() {
 // Write writes data to underlying connection
 func (s *session) Write(data []byte) (int, error) {
 	atomic.AddInt64(&s.internal.stats.send, int64(len(data)))
+	s.internal.writerMu.Lock()
+	defer s.internal.writerMu.Unlock()
 	return s.internal.session.Write(data)
 }
 
@@ -185,4 +189,228 @@ func (s *session) getLastKeepaliveTime() int64 {
 type pendingSession struct {
 	uid  int64
 	meta uint32
+}
+
+const (
+	maxbuckets      = 8
+	maxsizeofbucket = 1024
+)
+
+type sessions struct {
+	mod *frontendModule
+
+	maxConns      int
+	maxConnsPerIP int
+	nextSessionId int64
+	nextbucket    int
+
+	mutex    sync.RWMutex
+	uid2sid  map[int64]int64
+	ips      map[string]int
+	pendings map[int64]*pendingSession
+	nbucket  int
+	buckets  [maxbuckets]map[int64]*session
+}
+
+func newSessions(mod *frontendModule) *sessions {
+	ss := &sessions{
+		mod:      mod,
+		uid2sid:  make(map[int64]int64),
+		ips:      make(map[string]int),
+		pendings: make(map[int64]*pendingSession),
+		nbucket:  1,
+	}
+	for i := 0; i < ss.nbucket; i++ {
+		ss.buckets[i] = make(map[int64]*session)
+	}
+	return ss
+}
+
+func (ss *sessions) init() {
+	cfg := ss.mod.service.Config()
+	ss.maxConns = cfg.MaxConns
+	ss.maxConnsPerIP = cfg.MaxConnsPerIP
+}
+
+func (ss *sessions) allocSessionId() int64 {
+	return atomic.AddInt64(&ss.nextSessionId, 1)
+}
+
+func (ss *sessions) expand() {
+	if ss.nbucket >= maxbuckets {
+		return
+	}
+	old := ss.nbucket
+	ss.nbucket *= 2
+	mask := ss.nbucket - 1
+	for i := old; i < ss.nbucket; i++ {
+		ss.buckets[i] = make(map[int64]*session)
+		b := ss.buckets[i-old]
+		for id, s := range b {
+			if id&int64(mask) == int64(i) {
+				delete(b, id)
+				ss.buckets[i][id] = s
+			}
+		}
+	}
+}
+
+func (ss *sessions) shutdown() {
+	ss.mutex.RLock()
+	defer ss.mutex.RUnlock()
+	for i := 0; i < ss.nbucket; i++ {
+		b := ss.buckets[i]
+		for _, s := range b {
+			if state := s.getState(); state == stateClosing || state == stateOverflow {
+				continue
+			}
+			s.Close(nil)
+		}
+	}
+}
+
+func (ss *sessions) ttl() int64 {
+	return 2 * int64(ss.mod.service.Config().Keepalive) * 1000
+}
+
+func (ss *sessions) clean(now time.Time) {
+	ss.mutex.RLock()
+	defer ss.mutex.RUnlock()
+	if ss.nextbucket >= ss.nbucket {
+		ss.nextbucket = 0
+	}
+	ttl := ss.ttl()
+	timestamp := now.UnixNano() / 1e6
+	for id, s := range ss.buckets[ss.nextbucket] {
+		last := s.getLastKeepaliveTime()
+		if timestamp >= last+ttl {
+			ss.mod.Logger().Debug().
+				Int64("sid", id).
+				Print("close inactive session")
+			s.Close(nil)
+		}
+	}
+	ss.nextbucket++
+}
+
+func (ss *sessions) size() int {
+	ss.mutex.RLock()
+	defer ss.mutex.RUnlock()
+	size := 0
+	for i := 0; i < ss.nbucket; i++ {
+		size += len(ss.buckets[i])
+	}
+	return size
+}
+
+func (ss *sessions) add(s *session) (n int, ok bool) {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+
+	i := s.id & int64(ss.nbucket-1)
+	b := ss.buckets[i]
+	if len(b) >= maxsizeofbucket {
+		ss.expand()
+		i = s.id & int64(ss.nbucket-1)
+		b = ss.buckets[i]
+	}
+	b[s.id] = s
+	for i := 0; i < ss.nbucket; i++ {
+		n += len(ss.buckets[i])
+	}
+	if ss.maxConns == 0 || n < ss.maxConns {
+		ok = true
+	} else {
+		s.setState(stateOverflow)
+	}
+	return
+}
+
+func (ss *sessions) remove(id int64) *session {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+
+	i := id & int64(ss.nbucket-1)
+	b := ss.buckets[i]
+	s, ok := b[id]
+	if !ok {
+		return nil
+	}
+	delete(b, id)
+
+	ip := s.ip
+	if n, ok := ss.ips[ip]; n > 1 {
+		ss.ips[ip] = n - 1
+	} else if ok {
+		delete(ss.ips, ip)
+	}
+	if uid := s.getUid(); uid > 0 {
+		delete(ss.uid2sid, uid)
+	}
+	return s
+}
+
+func (ss *sessions) mapping(uid, sid int64) bool {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	if old, ok := ss.uid2sid[uid]; ok {
+		if sid != old {
+			ok = false
+		}
+		return ok
+	}
+	ss.uid2sid[uid] = sid
+	return true
+}
+
+func (ss *sessions) get(sid int64) *session {
+	ss.mutex.RLock()
+	defer ss.mutex.RUnlock()
+	b := ss.buckets[sid&int64(ss.nbucket-1)]
+	return b[sid]
+}
+
+func (ss *sessions) find(uid int64) *session {
+	ss.mutex.RLock()
+	defer ss.mutex.RUnlock()
+	sid, ok := ss.uid2sid[uid]
+	if !ok {
+		return nil
+	}
+	b := ss.buckets[sid&int64(ss.nbucket-1)]
+	return b[sid]
+}
+
+func (ss *sessions) recordIP(sid int64, ip string) bool {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	if n := ss.ips[ip]; n < ss.maxConnsPerIP {
+		ss.ips[ip] = n + 1
+		return true
+	}
+	return false
+}
+
+func (ss *sessions) broadcast(data []byte, now int64) {
+	ss.mutex.RLock()
+	defer ss.mutex.Unlock()
+	ttl := ss.ttl()
+	for _, b := range ss.buckets {
+		for sid, s := range b {
+			if s.getLastKeepaliveTime()+ttl < now {
+				ss.mod.Logger().Debug().
+					Int64("sid", sid).
+					Print("close inactive session")
+				s.Close(nil)
+				continue
+			}
+			if _, err := s.Write(data); err != nil {
+				ss.mod.Logger().Warn().
+					Int64("sid", sid).
+					Error("error", err).
+					Int("size", len(data)).
+					Print("broadcast to session error")
+			}
+		}
+	}
 }

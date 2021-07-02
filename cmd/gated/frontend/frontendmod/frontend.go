@@ -10,7 +10,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -52,42 +51,32 @@ type frontendModule struct {
 	server   interface{ Serve(net.Listener) error }
 	listener net.Listener
 
-	maxConns      int
-	maxConnsPerIP int
-	nextSessionId int64
-
-	mutex    sync.RWMutex
-	uid2sid  map[int64]int64
-	ips      map[string]int
-	sessions map[int64]*session
-	pendings map[int64]*pendingSession
+	sessions     *sessions
+	shuttingDown int32
 }
 
 func newFrontendModule(service Service) *frontendModule {
-	return &frontendModule{
+	mod := &frontendModule{
 		BaseModule: module.NewBaseModule("frontend"),
 		service:    service,
-		uid2sid:    make(map[int64]int64),
-		ips:        make(map[string]int),
-		sessions:   make(map[int64]*session),
-		pendings:   make(map[int64]*pendingSession),
 	}
+	mod.sessions = newSessions(mod)
+	return mod
 }
 
 // Init overrides BaseModule Init method
-func (f *frontendModule) Init() error {
-	if err := f.BaseModule.Init(); err != nil {
+func (mod *frontendModule) Init() error {
+	if err := mod.BaseModule.Init(); err != nil {
 		return err
 	}
-	cfg := f.service.Config()
-	f.maxConns = cfg.MaxConns
-	f.maxConnsPerIP = cfg.MaxConnsPerIP
-
+	cfg := mod.service.Config()
 	if verifier, err := jwt.NewVerifier(cfg.JWT.Filename, cfg.JWT.KeyId); err != nil {
 		return erron.Throw(err)
 	} else {
-		f.verifier = verifier
+		mod.verifier = verifier
 	}
+
+	mod.sessions.init()
 
 	if cfg.Net.Port <= 0 {
 		return erron.Throwf("invalid port: %d", cfg.Net.Port)
@@ -95,21 +84,21 @@ func (f *frontendModule) Init() error {
 	addr := fmt.Sprintf("%s:%d", cfg.Net.Bind, cfg.Net.Port)
 	keepalive := time.Duration(cfg.Net.Keepalive) * time.Second
 	if cfg.Net.Protocol == "tcp" {
-		server, listener, err := netutil.ListenTCP(addr, f.onOpen, keepalive)
+		server, listener, err := netutil.ListenTCP(addr, mod.onOpen, keepalive)
 		if err != nil {
 			return erron.Throw(err)
 		}
-		f.server = server
-		f.listener = listener
+		mod.server = server
+		mod.listener = listener
 	} else {
-		server, listener, err := httputil.ListenWebsocket(addr, "/", f.onOpen, keepalive)
+		server, listener, err := httputil.ListenWebsocket(addr, "/", mod.onOpen, keepalive)
 		if err != nil {
 			return erron.Throw(err)
 		}
-		f.server = server
-		f.listener = listener
+		mod.server = server
+		mod.listener = listener
 	}
-	f.Logger().Info().
+	mod.Logger().Info().
 		String("protocol", cfg.Net.Protocol).
 		String("addr", addr).
 		Print("listening")
@@ -118,172 +107,77 @@ func (f *frontendModule) Init() error {
 }
 
 // Start overrides BaseModule Start method
-func (f *frontendModule) Start() {
-	f.BaseModule.Start()
-	go f.server.Serve(f.listener)
+func (mod *frontendModule) Start() {
+	mod.BaseModule.Start()
+	go mod.server.Serve(mod.listener)
 }
 
 // Shutdown overrides BaseModule Shutdown method
-func (f *frontendModule) Shutdown() {
-	f.BaseModule.Shutdown()
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
-	for _, s := range f.sessions {
-		if state := s.getState(); state == stateClosing || state == stateOverflow {
-			continue
+func (mod *frontendModule) Shutdown() {
+	mod.BaseModule.Shutdown()
+	mod.shutdown()
+}
+
+func (mod *frontendModule) shutdown() {
+	mod.sessions.shutdown()
+}
+
+// Update overrides BaseModule Update method
+func (mod *frontendModule) Update(now time.Time, dt time.Duration) {
+	mod.BaseModule.Update(now, dt)
+
+	if mod.service.State() == service.Stopping {
+		if atomic.CompareAndSwapInt32(&mod.shuttingDown, 0, 1) {
+			mod.shutdown()
 		}
-		s.Close(nil)
-	}
-}
-
-func (f *frontendModule) size() int {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
-	return len(f.sessions)
-}
-
-func (f *frontendModule) add(s *session) (n int, ok bool) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-	f.sessions[s.id] = s
-	n = len(f.sessions)
-	if f.maxConns == 0 || n < f.maxConns {
-		ok = true
 	} else {
-		s.setState(stateOverflow)
-	}
-	return
-}
-
-func (f *frontendModule) remove(id int64) *session {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-
-	s, ok := f.sessions[id]
-	if !ok {
-		return nil
-	}
-	delete(f.sessions, id)
-
-	ip := s.ip
-	if n, ok := f.ips[ip]; n > 1 {
-		f.ips[ip] = n - 1
-	} else if ok {
-		delete(f.ips, ip)
-	}
-	if uid := s.getUid(); uid > 0 {
-		delete(f.uid2sid, uid)
-	}
-	return s
-}
-
-func (f *frontendModule) mapping(uid, sid int64) bool {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-	if old, ok := f.uid2sid[uid]; ok {
-		if sid != old {
-			ok = false
-		}
-		return ok
-	}
-	f.uid2sid[uid] = sid
-	return true
-}
-
-func (f *frontendModule) get(sid int64) *session {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
-	return f.sessions[sid]
-}
-
-func (f *frontendModule) find(uid int64) *session {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
-	sid, ok := f.uid2sid[uid]
-	if !ok {
-		return nil
-	}
-	return f.sessions[sid]
-}
-
-func (f *frontendModule) recordIP(sid int64, ip string) bool {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-	if n := f.ips[ip]; n < f.maxConnsPerIP {
-		f.ips[ip] = n + 1
-		return true
-	}
-	return false
-}
-
-func (f *frontendModule) clean(ttl, now int64) {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
-	for sid, s := range f.sessions {
-		if s.getLastKeepaliveTime()+ttl < now {
-			f.Logger().Debug().Int64("sid", sid).Print("clean dead session")
-			s.Close(nil)
-		}
+		mod.sessions.clean(now)
 	}
 }
 
-func (f *frontendModule) broadcast(data []byte, ttl, now int64) {
-	f.mutex.RLock()
-	defer f.mutex.Unlock()
-	for sid, s := range f.sessions {
-		if s.getLastKeepaliveTime()+ttl > now {
-			if _, err := s.Write(data); err != nil {
-				f.Logger().Warn().
-					Int64("sid", sid).
-					Error("error", err).
-					Int("size", len(data)).
-					Print("broadcast to session error")
-			}
-		}
-	}
+// Busy implements frontend.Module Busy method
+func (mod *frontendModule) Busy() bool {
+	return mod.sessions.size() > 0
 }
 
-func (f *frontendModule) allocSessionId() int64 {
-	return atomic.AddInt64(&f.nextSessionId, 1)
-}
-
-func (f *frontendModule) onOpen(ip string, conn net.Conn) {
-	sid := f.allocSessionId()
-	f.Logger().Debug().
+// onOpen implements handler onOpen method
+func (mod *frontendModule) onOpen(ip string, conn net.Conn) {
+	sid := mod.sessions.allocSessionId()
+	mod.Logger().Debug().
 		Int64("sid", sid).
 		String("ip", ip).
 		Print("session connected")
-	sess := newSession(f.Logger(), sid, ip, conn, f)
+	s := newSession(mod.Logger(), sid, ip, conn, mod)
 	// Blocked here
-	sess.serve()
+	s.serve()
 }
 
 // onReady implements handler onReady method
-func (f *frontendModule) onReady(sess *session) {
-	n, ok := f.add(sess)
+func (mod *frontendModule) onReady(s *session) {
+	n, ok := mod.sessions.add(s)
 	if !ok {
-		f.Logger().Warn().
-			Int64("sid", sess.id).
+		mod.Logger().Warn().
+			Int64("sid", s.id).
 			Int("sessions", n).
 			Print("add session failed")
 	} else {
-		f.Logger().Debug().
-			Int64("sid", sess.id).
+		mod.Logger().Debug().
+			Int64("sid", s.id).
 			Int("sessions", n).
 			Print("session ready")
 	}
 }
 
 // onClose implements handler onClose method
-func (f *frontendModule) onClose(sess *session, err error) {
-	f.Logger().Debug().Int64("sid", sess.id).Print("session closed")
-	f.remove(sess.id)
+func (mod *frontendModule) onClose(s *session, err error) {
+	mod.Logger().Debug().Int64("sid", s.id).Print("session closed")
+	mod.sessions.remove(s.id)
 }
 
 // onMessage implements handler onMessage method
-func (f *frontendModule) onMessage(sess *session, typ proto.Type, body proto.Body) error {
-	f.Logger().Trace().
-		Int64("sid", sess.id).
+func (mod *frontendModule) onMessage(s *session, typ proto.Type, body proto.Body) error {
+	mod.Logger().Trace().
+		Int64("sid", s.id).
 		Int("size", body.Len()).
 		Int("type", int(typ)).
 		Print("session received a typed message")
@@ -293,25 +187,25 @@ func (f *frontendModule) onMessage(sess *session, typ proto.Type, body proto.Bod
 	)
 	switch typ {
 	case gatepb.PingType:
-		if f.service.Config().ForwardPing {
-			err = f.forward(sess, typ, body)
-		} else if m, err = f.unmarshal(sess, typ, body); err == nil {
-			err = f.ping(sess, m.(*gatepb.Ping))
+		if mod.service.Config().ForwardPing {
+			err = mod.forward(s, typ, body)
+		} else if m, err = mod.unmarshal(s, typ, body); err == nil {
+			err = mod.ping(s, m.(*gatepb.Ping))
 		}
 	case gatepb.LoginType:
-		if m, err = f.unmarshal(sess, typ, body); err == nil {
-			err = f.login(sess, m.(*gatepb.Login))
+		if m, err = mod.unmarshal(s, typ, body); err == nil {
+			err = mod.login(s, m.(*gatepb.Login))
 		}
 	case gatepb.LogoutType:
-		if m, err = f.unmarshal(sess, typ, body); err == nil {
-			err = f.logout(sess, m.(*gatepb.Logout))
+		if m, err = mod.unmarshal(s, typ, body); err == nil {
+			err = mod.logout(s, m.(*gatepb.Logout))
 		}
 	default:
-		err = f.forward(sess, typ, body)
+		err = mod.forward(s, typ, body)
 	}
 	if err != nil {
-		f.Logger().Warn().
-			Int64("sid", sess.id).
+		mod.Logger().Warn().
+			Int64("sid", s.id).
 			Int("type", int(typ)).
 			Error("error", err).
 			Print("session handle message error")
@@ -320,29 +214,30 @@ func (f *frontendModule) onMessage(sess *session, typ proto.Type, body proto.Bod
 }
 
 // onCommand implements handler onCommand method
-func (f *frontendModule) onCommand(sess *session, cmd *resp.Command) error {
-	c := commands[strings.ToLower(cmd.Name())]
+func (mod *frontendModule) onCommand(s *session, cmd *resp.Command) error {
+	name := cmd.Name()
+	c := commands[strings.ToLower(name)]
 	if c == nil {
-		typ, err := proto.ParseType(cmd.Name())
+		typ, err := proto.ParseType(name)
 		if err != nil {
 			if errors.Is(err, proto.ErrTypeOverflow) {
 				return err
 			}
-			return errorln(sess, "command "+cmd.Name()+" not found, run command to list all supported commands")
+			return errorln(s, "command "+name+" not found, run command to list all supported commands")
 		}
-		switch cmd.NumArg() {
+		switch cmd.NArg() {
 		case 0:
-			return f.onMessage(sess, typ, proto.Text(nil))
+			return mod.onMessage(s, typ, proto.Text(nil))
 		case 1:
-			return f.onMessage(sess, typ, proto.Text(cmd.Arg(0).Value()))
+			return mod.onMessage(s, typ, proto.Text([]byte(cmd.Arg(0))))
 		default:
 			return resp.ErrNumberOfArguments
 		}
 	}
-	return c.run(f, sess, cmd)
+	return c.run(mod, s, cmd)
 }
 
-func (f *frontendModule) unmarshal(sess *session, typ proto.Type, body proto.Body) (proto.Message, error) {
+func (mod *frontendModule) unmarshal(s *session, typ proto.Type, body proto.Body) (proto.Message, error) {
 	m := proto.New(typ)
 	if m == nil {
 		return nil, proto.ErrUnrecognizedType
@@ -352,7 +247,7 @@ func (f *frontendModule) unmarshal(sess *session, typ proto.Type, body proto.Bod
 		defer proto.FreeBuffer(buf)
 		_, err := io.CopyN(buf, body, int64(body.Len()))
 		if err != nil {
-			f.Logger().Warn().
+			mod.Logger().Warn().
 				Int("type", int(typ)).
 				Int("size", int(size)).
 				String("name", proto.Nameof(m)).
@@ -360,7 +255,7 @@ func (f *frontendModule) unmarshal(sess *session, typ proto.Type, body proto.Bod
 				Print("read message body error")
 			return nil, err
 		}
-		switch sess.ContentType() {
+		switch s.ContentType() {
 		case proto.ContentTypeProtobuf:
 			err = buf.Unmarshal(m)
 		case proto.ContentTypeText:
@@ -369,7 +264,7 @@ func (f *frontendModule) unmarshal(sess *session, typ proto.Type, body proto.Bod
 			err = proto.ErrUnsupportedContentType
 		}
 		if err != nil {
-			f.Logger().Warn().
+			mod.Logger().Warn().
 				Int("type", int(typ)).
 				String("name", proto.Nameof(m)).
 				Error("error", err).
@@ -380,20 +275,23 @@ func (f *frontendModule) unmarshal(sess *session, typ proto.Type, body proto.Bod
 	return m, nil
 }
 
-func (f *frontendModule) setUserLogged(uid, sid int64) (bool, error) {
-	var (
-		name    = path.Join(f.service.Config().Core.Project, frontend.UsersTable)
-		content = make([]byte, 0, 32)
-	)
-	content = strconv.AppendInt(content, f.service.ID(), 10)
-	content = append(content, ',')
-	content = strconv.AppendInt(content, sid, 10)
-	err := f.service.Discovery().Register(context.TODO(), name, strconv.FormatInt(uid, 10), string(content), true)
+func (mod *frontendModule) userKey(uid int64) string {
+	return path.Join(mod.service.Config().Core.Project, frontend.UsersTable, strconv.FormatInt(uid, 10))
+}
+
+func (mod *frontendModule) setUserLogged(uid, sid int64) (bool, error) {
+	buf := make([]byte, 0, 32)
+	buf = strconv.AppendInt(buf, mod.service.ID(), 10)
+	buf = append(buf, ',')
+	buf = strconv.AppendInt(buf, sid, 10)
+	content := string(buf)
+	ttl := time.Duration(mod.service.Config().UserTTL) * time.Second
+	err := mod.service.Discovery().Register(context.Background(), "", mod.userKey(uid), content, true, ttl)
 	if err != nil {
 		if discovery.IsExist(err) {
-			return false, nil
+			return false, err
 		}
-		f.Logger().Warn().
+		mod.Logger().Warn().
 			Int64("uid", uid).
 			Error("error", err).
 			Print("register user error")
@@ -402,102 +300,141 @@ func (f *frontendModule) setUserLogged(uid, sid int64) (bool, error) {
 	return true, nil
 }
 
-func (f *frontendModule) forward(sess *session, typ proto.Type, body proto.Body) error {
-	return f.service.Backend().Forward(sess.getUid(), typ, body)
+func (mod *frontendModule) delUserLogged(uid int64) (bool, error) {
+	err := mod.service.Discovery().Unregister(context.Background(), "", mod.userKey(uid))
+	if err != nil {
+		mod.Logger().Warn().
+			Int64("uid", uid).
+			Error("error", err).
+			Print("unregister user error")
+		return false, err
+	}
+	return true, nil
 }
 
-func (f *frontendModule) ping(sess *session, req *gatepb.Ping) error {
-	f.Logger().Debug().
-		Int64("sid", sess.id).
+func (mod *frontendModule) forward(s *session, typ proto.Type, body proto.Body) error {
+	// TODO: forward to where
+	return mod.service.Backend().Forward(s.getUid(), typ, body)
+}
+
+func (mod *frontendModule) ping(s *session, req *gatepb.Ping) error {
+	mod.Logger().Debug().
+		Int64("sid", s.id).
 		String("content", req.Content).
 		Print("received ping message")
-	pong := &gatepb.Pong{
+	return s.send(&gatepb.Pong{
 		Content: req.Content,
-	}
-	return sess.send(pong)
+	})
 }
 
-func (f *frontendModule) login(sess *session, req *gatepb.Login) error {
-	cfg := f.service.Config()
-	claims, err := f.verifier.Verify(cfg.JWT.Issuer, req.Token)
+func (mod *frontendModule) login(s *session, req *gatepb.Login) error {
+	cfg := mod.service.Config()
+	claims, err := mod.verifier.Verify(cfg.JWT.Issuer, req.Token)
 	if err != nil {
+		mod.Logger().Warn().
+			Int64("sid", s.id).
+			String("token", req.Token).
+			Error("error", err).
+			Print("verify token error")
 		return err
 	}
-	uid, sid := claims.Uid, sess.id
-	if ok, err := f.setUserLogged(uid, sid); err != nil {
+	mod.Logger().Debug().
+		Int64("sid", s.id).
+		Int64("uid", claims.Uid).
+		String("os", claims.Os).
+		String("ip", claims.IP).
+		String("location", claims.Loc).
+		Int("chan", claims.Chan).
+		Print("user logging")
+	uid, sid := claims.Uid, s.id
+	if ok, err := mod.setUserLogged(uid, sid); err != nil {
 		return err
 	} else if !ok {
 		// TODO: add to pendings
 		return nil
 	}
-	return f.service.Backend().Login(uid, claims, req.Userdata)
+	return mod.service.Backend().Login(uid, claims, req.Userdata)
 }
 
-func (f *frontendModule) logout(sess *session, req *gatepb.Logout) error {
-	uid := sess.getUid()
+func (mod *frontendModule) logout(s *session, req *gatepb.Logout) error {
+	uid := s.getUid()
 	if uid <= 0 {
 		return nil
 	}
-	return f.service.Backend().Logout(uid)
+	return mod.service.Backend().Logout(uid)
 }
 
 // BroadcastAll implements module.Frontend BroadcastAll method
-func (f *frontendModule) BroadcastAll(content []byte) error {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
-	for _, sess := range f.sessions {
-		sess.Write(content)
-	}
+func (mod *frontendModule) BroadcastAll(content []byte) error {
+	mod.sessions.broadcast(content, time.Now().UnixNano()/1e6)
 	return nil
 }
 
-// Broadcast implements module.Frontend Broadcast method
-func (f *frontendModule) Broadcast(uids []int64, content []byte) error {
+// Broadcast implements frontend.Module Broadcast method
+func (mod *frontendModule) Broadcast(uids []int64, content []byte) error {
 	for _, uid := range uids {
-		sess := f.find(uid)
-		if sess != nil {
-			sess.Write(content)
+		s := mod.sessions.find(uid)
+		if s != nil {
+			s.Write(content)
 		}
 	}
 	return nil
 }
 
-// Send implements module.Frontend Send method
-func (f *frontendModule) Send(uid int64, content []byte) error {
-	sess := f.find(uid)
-	if sess == nil {
-		f.Logger().Debug().
+// Write implements frontend.Module Write method
+func (mod *frontendModule) Write(uid int64, content []byte) error {
+	s := mod.sessions.find(uid)
+	if s == nil {
+		mod.Logger().Debug().
 			Int64("uid", uid).
 			Print("send to user failed, session not found by uid")
 		return nil
 	}
-	f.Logger().Trace().
+	mod.Logger().Trace().
 		Int64("uid", uid).
-		Int64("sid", sess.id).
+		Int64("sid", s.id).
 		Int("size", len(content)).
 		Print("send to user session")
-	sess.Write(content)
-	return nil
+	_, err := s.Write(content)
+	return err
 }
 
-// Kickout implements module.Frontend Kickout method
-func (f *frontendModule) Kickout(uid int64, reason gatepb.KickoutReason) error {
-	sess := f.find(uid)
-	if sess == nil {
-		f.Logger().Debug().
+// Send implements frontend.Module Send method
+func (mod *frontendModule) Send(uid int64, m proto.Message) error {
+	s := mod.sessions.find(uid)
+	if s == nil {
+		mod.Logger().Debug().
+			Int64("uid", uid).
+			Print("send to user failed, session not found by uid")
+		return nil
+	}
+	mod.Logger().Trace().
+		Int64("uid", uid).
+		Int64("sid", s.id).
+		Int32("type", int32(m.Type())).
+		String("name", proto.Nameof(m)).
+		Print("send to user session")
+	return s.send(m)
+}
+
+// Kickout implements frontend.Module Kickout method
+func (mod *frontendModule) Kickout(uid int64, reason gatepb.KickoutReason) error {
+	s := mod.sessions.find(uid)
+	if s == nil {
+		mod.Logger().Debug().
 			Int64("uid", uid).
 			Print("user session not found by uid")
 		return nil
 	}
-	f.Logger().Debug().
+	mod.Logger().Debug().
 		Int64("uid", uid).
-		Int64("sid", sess.id).
-		Any("reason", reason).
+		Int64("sid", s.id).
+		String("reason", reason.String()).
 		Print("kickout user")
 	kickout := &gatepb.Kickout{
 		Reason: int32(reason),
 	}
-	sess.send(kickout)
-	sess.Close(nil)
+	s.send(kickout)
+	s.Close(nil)
 	return nil
 }
