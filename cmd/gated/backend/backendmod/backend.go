@@ -9,13 +9,17 @@ import (
 	"github.com/gopherd/doge/service/module"
 	"github.com/gopherd/jwt"
 
+	"github.com/gopherd/gopherd/cmd/gated/backend"
 	"github.com/gopherd/gopherd/cmd/gated/config"
 	"github.com/gopherd/gopherd/cmd/gated/frontend"
 	"github.com/gopherd/gopherd/proto/gatepb"
 )
 
 // New returns a backend module
-func New(service Service) module.Module {
+func New(service Service) interface {
+	module.Module
+	backend.Module
+} {
 	return newBackendModule(service)
 }
 
@@ -55,6 +59,7 @@ func (mod *backendModule) Busy() bool {
 	return false
 }
 
+// consume consumes message from mq
 func (mod *backendModule) consume(topic string, msg []byte, err error) {
 	if err != nil {
 		mod.Logger().Warn().
@@ -77,51 +82,61 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 		Print("received a message from mq")
 	switch ptc := m.(type) {
 	case *gatepb.Broadcast:
-		mod.onBroadcast(ptc)
-	case *gatepb.Response:
-		mod.onResponse(ptc)
-	case *gatepb.Ping:
-		mod.onPing(ptc)
-	case *gatepb.Pong:
-		mod.onPong(ptc)
+		err = mod.broadcast(ptc)
+	case *gatepb.Unicast:
+		err = mod.unicast(ptc)
+	case *gatepb.Kickout:
+		err = mod.kickout(ptc)
 	default:
 		mod.Logger().Warn().
 			Int("size", len(msg)).
 			Int("type", int(m.Type())).
 			String("name", proto.Nameof(m)).
 			Print("received a unknown message from mq")
+		return
+	}
+	if err != nil {
+		mod.Logger().Warn().
+			Int("type", int(m.Type())).
+			String("name", proto.Nameof(m)).
+			Error("error", err).
+			Print("handle message error")
 	}
 }
 
-func (mod *backendModule) onBroadcast(ptc *gatepb.Broadcast) {
+// broadcast handles Broadcast message
+func (mod *backendModule) broadcast(ptc *gatepb.Broadcast) error {
 	if len(ptc.Uids) == 0 {
-		mod.service.Frontend().BroadcastAll(ptc.Content)
+		return mod.service.Frontend().BroadcastAll(ptc.Content)
 	} else {
-		mod.service.Frontend().Broadcast(ptc.Uids, ptc.Content)
+		return mod.service.Frontend().Broadcast(ptc.Uids, ptc.Content)
 	}
 }
 
-func (mod *backendModule) onResponse(ptc *gatepb.Response) {
-	mod.service.Frontend().Write(ptc.Uid, ptc.Content)
+// unicast handles Unicast message
+func (mod *backendModule) unicast(ptc *gatepb.Unicast) error {
+	return mod.service.Frontend().Unicast(ptc.Uid, ptc.Content)
 }
 
-func (mod *backendModule) onPing(ptc *gatepb.Ping) {
-}
-
-func (mod *backendModule) onPong(ptc *gatepb.Pong) {
+// kickout handles Kickout message
+func (mod *backendModule) kickout(ptc *gatepb.Kickout) error {
+	return mod.service.Frontend().Kickout(ptc.Uid, gatepb.KickoutReason(ptc.Reason))
 }
 
 // Forward implements backend.Module Forward method
 func (mod *backendModule) Forward(uid int64, typ proto.Type, body proto.Body) error {
+	// (TODO) where to forward
 	return nil
 }
 
 // Login implements backend.Module Login method
-func (mod *backendModule) Login(uid int64, claims *jwt.Claims, userdata []byte) error {
+func (mod *backendModule) Login(claims jwt.Payload, userdata []byte, replace bool) error {
+	// (TODO) handle login
 	return nil
 }
 
 // Logout implements backend.Module Logout method
 func (mod *backendModule) Logout(uid int64) error {
+	// (TODO) handle logout
 	return nil
 }

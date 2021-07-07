@@ -5,17 +5,20 @@ package gatepb
 import registry "github.com/gopherd/doge/proto"
 
 const (
-	RequestType   = 151
-	ResponseType  = 152
-	BroadcastType = 153
+	RequestType   = 150
+	UnicastType   = 151
+	BroadcastType = 152
+	KickoutType   = 153
 )
 
 func init() {
 	registry.Register("gatepb", RequestType, func() registry.Message { return new(Request) })
-	registry.Register("gatepb", ResponseType, func() registry.Message { return new(Response) })
+	registry.Register("gatepb", UnicastType, func() registry.Message { return new(Unicast) })
 	registry.Register("gatepb", BroadcastType, func() registry.Message { return new(Broadcast) })
+	registry.Register("gatepb", KickoutType, func() registry.Message { return new(Kickout) })
 }
 
 func (*Request) Type() registry.Type   { return RequestType }
-func (*Response) Type() registry.Type  { return ResponseType }
+func (*Unicast) Type() registry.Type   { return UnicastType }
 func (*Broadcast) Type() registry.Type { return BroadcastType }
+func (*Kickout) Type() registry.Type   { return KickoutType }

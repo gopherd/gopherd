@@ -5,26 +5,26 @@ package gatepb
 import registry "github.com/gopherd/doge/proto"
 
 const (
-	ErrorType   = 130
-	PingType    = 131
-	PongType    = 132
-	LoginType   = 133
-	LogoutType  = 134
-	KickoutType = 135
+	ErrorType     = 130
+	PingType      = 131
+	PongType      = 132
+	LoginReqType  = 133
+	LogoutReqType = 134
+	LogoutResType = 135
 )
 
 func init() {
 	registry.Register("gatepb", ErrorType, func() registry.Message { return new(Error) })
 	registry.Register("gatepb", PingType, func() registry.Message { return new(Ping) })
 	registry.Register("gatepb", PongType, func() registry.Message { return new(Pong) })
-	registry.Register("gatepb", LoginType, func() registry.Message { return new(Login) })
-	registry.Register("gatepb", LogoutType, func() registry.Message { return new(Logout) })
-	registry.Register("gatepb", KickoutType, func() registry.Message { return new(Kickout) })
+	registry.Register("gatepb", LoginReqType, func() registry.Message { return new(LoginReq) })
+	registry.Register("gatepb", LogoutReqType, func() registry.Message { return new(LogoutReq) })
+	registry.Register("gatepb", LogoutResType, func() registry.Message { return new(LogoutRes) })
 }
 
-func (*Error) Type() registry.Type   { return ErrorType }
-func (*Ping) Type() registry.Type    { return PingType }
-func (*Pong) Type() registry.Type    { return PongType }
-func (*Login) Type() registry.Type   { return LoginType }
-func (*Logout) Type() registry.Type  { return LogoutType }
-func (*Kickout) Type() registry.Type { return KickoutType }
+func (*Error) Type() registry.Type     { return ErrorType }
+func (*Ping) Type() registry.Type      { return PingType }
+func (*Pong) Type() registry.Type      { return PongType }
+func (*LoginReq) Type() registry.Type  { return LoginReqType }
+func (*LogoutReq) Type() registry.Type { return LogoutReqType }
+func (*LogoutRes) Type() registry.Type { return LogoutResType }

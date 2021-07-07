@@ -10,6 +10,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/gopherd/doge/service/discovery"
 	"github.com/gopherd/doge/service/module"
 	"github.com/gopherd/doge/text/resp"
+	"github.com/gopherd/doge/time/timer"
 	"github.com/gopherd/jwt"
 
 	"github.com/gopherd/gopherd/cmd/gated/backend"
@@ -30,7 +32,10 @@ import (
 )
 
 // New returns a frontend moudle
-func New(service Service) module.Module {
+func New(service Service) interface {
+	module.Module
+	frontend.Module
+} {
 	return newFrontendModule(service)
 }
 
@@ -45,20 +50,23 @@ type Service interface {
 // frontendModule implements frontend.Module interface
 type frontendModule struct {
 	*module.BaseModule
-	service Service
+	service      Service
+	shuttingDown int32
 
 	verifier *jwt.Verifier
 	server   interface{ Serve(net.Listener) error }
 	listener net.Listener
 
-	sessions     *sessions
-	shuttingDown int32
+	sessions              *sessions
+	pendingSessions       sync.Map
+	pendingSessionsTicker *timer.Ticker
 }
 
 func newFrontendModule(service Service) *frontendModule {
 	mod := &frontendModule{
-		BaseModule: module.NewBaseModule("frontend"),
-		service:    service,
+		BaseModule:            module.NewBaseModule("frontend"),
+		service:               service,
+		pendingSessionsTicker: timer.NewTicker(time.Second),
 	}
 	mod.sessions = newSessions(mod)
 	return mod
@@ -70,14 +78,18 @@ func (mod *frontendModule) Init() error {
 		return err
 	}
 	cfg := mod.service.Config()
+
+	// create jwt verifier
 	if verifier, err := jwt.NewVerifier(cfg.JWT.Filename, cfg.JWT.KeyId); err != nil {
 		return erron.Throw(err)
 	} else {
 		mod.verifier = verifier
 	}
 
+	// init sessions
 	mod.sessions.init()
 
+	// start tcp/websocket server
 	if cfg.Net.Port <= 0 {
 		return erron.Throwf("invalid port: %d", cfg.Net.Port)
 	}
@@ -115,10 +127,10 @@ func (mod *frontendModule) Start() {
 // Shutdown overrides BaseModule Shutdown method
 func (mod *frontendModule) Shutdown() {
 	mod.BaseModule.Shutdown()
-	mod.shutdown()
+	mod.clean()
 }
 
-func (mod *frontendModule) shutdown() {
+func (mod *frontendModule) clean() {
 	mod.sessions.shutdown()
 }
 
@@ -128,9 +140,24 @@ func (mod *frontendModule) Update(now time.Time, dt time.Duration) {
 
 	if mod.service.State() == service.Stopping {
 		if atomic.CompareAndSwapInt32(&mod.shuttingDown, 0, 1) {
-			mod.shutdown()
+			mod.clean()
 		}
 	} else {
+		if mod.pendingSessionsTicker.Next(now) {
+			timestamp := now.UnixNano() / 1e6
+			deleted := make(map[int64]bool)
+			mod.pendingSessions.Range(func(k, v interface{}) bool {
+				sid := k.(int64)
+				ps := v.(*pendingSession)
+				if mod.retryLogin(sid, ps, timestamp) {
+					deleted[sid] = true
+				}
+				return true
+			})
+			for k := range deleted {
+				mod.pendingSessions.Delete(k)
+			}
+		}
 		mod.sessions.clean(now)
 	}
 }
@@ -171,7 +198,11 @@ func (mod *frontendModule) onReady(s *session) {
 // onClose implements handler onClose method
 func (mod *frontendModule) onClose(s *session, err error) {
 	mod.Logger().Debug().Int64("sid", s.id).Print("session closed")
-	mod.sessions.remove(s.id)
+	if s.getUid() > 0 {
+		mod.afterLogout(s)
+	} else {
+		mod.sessions.remove(s.id)
+	}
 }
 
 // onMessage implements handler onMessage method
@@ -187,18 +218,14 @@ func (mod *frontendModule) onMessage(s *session, typ proto.Type, body proto.Body
 	)
 	switch typ {
 	case gatepb.PingType:
-		if mod.service.Config().ForwardPing {
-			err = mod.forward(s, typ, body)
-		} else if m, err = mod.unmarshal(s, typ, body); err == nil {
-			err = mod.ping(s, m.(*gatepb.Ping))
-		}
-	case gatepb.LoginType:
+		err = mod.ping(s, typ, body)
+	case gatepb.LoginReqType:
 		if m, err = mod.unmarshal(s, typ, body); err == nil {
-			err = mod.login(s, m.(*gatepb.Login))
+			err = mod.login(s, m.(*gatepb.LoginReq))
 		}
-	case gatepb.LogoutType:
+	case gatepb.LogoutReqType:
 		if m, err = mod.unmarshal(s, typ, body); err == nil {
-			err = mod.logout(s, m.(*gatepb.Logout))
+			err = mod.logout(s, m.(*gatepb.LogoutReq))
 		}
 	default:
 		err = mod.forward(s, typ, body)
@@ -279,14 +306,14 @@ func (mod *frontendModule) userKey(uid int64) string {
 	return path.Join(mod.service.Config().Core.Project, frontend.UsersTable, strconv.FormatInt(uid, 10))
 }
 
-func (mod *frontendModule) setUserLogged(uid, sid int64) (bool, error) {
+func (mod *frontendModule) setUserLogged(uid, sid int64, nx bool) (bool, error) {
 	buf := make([]byte, 0, 32)
 	buf = strconv.AppendInt(buf, mod.service.ID(), 10)
 	buf = append(buf, ',')
 	buf = strconv.AppendInt(buf, sid, 10)
 	content := string(buf)
 	ttl := time.Duration(mod.service.Config().UserTTL) * time.Second
-	err := mod.service.Discovery().Register(context.Background(), "", mod.userKey(uid), content, true, ttl)
+	err := mod.service.Discovery().Register(context.Background(), "", mod.userKey(uid), content, nx, ttl)
 	if err != nil {
 		if discovery.IsExist(err) {
 			return false, err
@@ -312,23 +339,46 @@ func (mod *frontendModule) delUserLogged(uid int64) (bool, error) {
 	return true, nil
 }
 
+// forward forwards message to other services
 func (mod *frontendModule) forward(s *session, typ proto.Type, body proto.Body) error {
-	// TODO: forward to where
 	return mod.service.Backend().Forward(s.getUid(), typ, body)
 }
 
-func (mod *frontendModule) ping(s *session, req *gatepb.Ping) error {
-	mod.Logger().Debug().
-		Int64("sid", s.id).
-		String("content", req.Content).
-		Print("received ping message")
-	return s.send(&gatepb.Pong{
-		Content: req.Content,
-	})
+// ping handles Ping message
+func (mod *frontendModule) ping(s *session, typ proto.Type, body proto.Body) error {
+	if mod.service.Config().ForwardPing {
+		return mod.forward(s, typ, body)
+	} else if m, err := mod.unmarshal(s, typ, body); err != nil {
+		return err
+	} else {
+		ttl := int64(mod.service.Config().UserTTL) * 1000
+		if s.trySetLastUpdateSidTime(ttl/2, time.Now().UnixNano()/1e6) {
+			_, err := mod.setUserLogged(s.getUid(), s.id, false)
+			if err != nil {
+				return err
+			}
+		}
+		req := m.(*gatepb.Ping)
+		mod.Logger().Debug().
+			Int64("sid", s.id).
+			String("content", req.Content).
+			Print("received ping message")
+		return s.send(&gatepb.Pong{
+			Content: req.Content,
+		})
+	}
 }
 
-func (mod *frontendModule) login(s *session, req *gatepb.Login) error {
+// login handles LoginReq message
+func (mod *frontendModule) login(s *session, req *gatepb.LoginReq) error {
 	cfg := mod.service.Config()
+	if s.getState() == stateOverflow {
+		s.send(&gatepb.LogoutRes{
+			Reason: gatepb.KickoutReason_Overflow,
+		})
+		s.Close(nil)
+		return nil
+	}
 	claims, err := mod.verifier.Verify(cfg.JWT.Issuer, req.Token)
 	if err != nil {
 		mod.Logger().Warn().
@@ -346,17 +396,107 @@ func (mod *frontendModule) login(s *session, req *gatepb.Login) error {
 		String("location", claims.Loc).
 		Int("chan", claims.Chan).
 		Print("user logging")
-	uid, sid := claims.Uid, s.id
-	if ok, err := mod.setUserLogged(uid, sid); err != nil {
+
+	// overrides ip
+	if claims.IP != "" {
+		s.ip = claims.IP
+	}
+
+	if !mod.sessions.recordIP(s.id, s.ip) {
+		mod.Logger().Warn().
+			Int64("sid", s.id).
+			Int64("uid", claims.Uid).
+			String("os", claims.Os).
+			String("ip", claims.IP).
+			String("location", claims.Loc).
+			Int("chan", claims.Chan).
+			Print("user login denied because of ip limited")
+		return errors.New("ip limited")
+	}
+
+	s.setUser(user{
+		token: claims.Payload,
+	})
+
+	if ok, err := mod.setUserLogged(claims.Uid, s.id, true); err != nil {
 		return err
 	} else if !ok {
-		// TODO: add to pendings
-		return nil
+		mod.pendingSessions.Store(s.id, &pendingSession{
+			uid: claims.Uid,
+		})
+		s.setState(statePendingLogin)
+		return mod.service.Backend().Login(claims.Payload, req.Userdata, true)
 	}
-	return mod.service.Backend().Login(uid, claims, req.Userdata)
+	return mod.afterLogin(s, req.Userdata)
 }
 
-func (mod *frontendModule) logout(s *session, req *gatepb.Logout) error {
+func (mod *frontendModule) retryLogin(sid int64, ps *pendingSession, now int64) (deleted bool) {
+	s := mod.sessions.get(sid)
+	if s == nil {
+		mod.Logger().Debug().
+			Int64("sid", sid).
+			Int64("uid", ps.uid).
+			Print("session not found when retry login")
+		return true
+	}
+	if s.getState() != statePendingLogin {
+		mod.Logger().Debug().
+			Int64("sid", sid).
+			Int64("uid", ps.uid).
+			Int("state", int(statePendingLogin)).
+			Print("session state is not pending")
+		return true
+	}
+	if ok, err := mod.setUserLogged(ps.uid, sid, true); err != nil {
+		mod.Logger().Debug().
+			Int64("sid", sid).
+			Int64("uid", ps.uid).
+			Error("error", err).
+			Print("set user logged failed")
+		s.send(&gatepb.LogoutRes{
+			Reason: gatepb.KickoutReason_LoginAnotherDevice,
+		})
+		s.Close(nil)
+		return true
+	} else if ok {
+		mod.afterLogin(s, ps.userdata)
+		return true
+	}
+	if s.createdAt+int64(maxDurationForPendingSession/time.Millisecond) < now {
+		mod.Logger().Debug().
+			Int64("sid", sid).
+			Int64("uid", ps.uid).
+			Print("user login repeated")
+		s.send(&gatepb.LogoutRes{
+			Reason: gatepb.KickoutReason_LoginAnotherDevice,
+		})
+		s.Close(nil)
+		return true
+	}
+	return false
+}
+
+func (mod *frontendModule) afterLogin(s *session, userdata []byte) error {
+	if !mod.sessions.mapping(s.getUid(), s.id) {
+		mod.Logger().Warn().
+			Int64("uid", s.getUid()).
+			Int64("sid", s.id).
+			Print("duplicated login")
+		return errors.New("duplicated login")
+	}
+	s.setState(stateLogged)
+	return mod.service.Backend().Login(s.getUser().token, userdata, false)
+}
+
+func (mod *frontendModule) logout(s *session, req *gatepb.LogoutReq) error {
+	s.send(&gatepb.LogoutRes{
+		Reason: gatepb.KickoutReason_UserLogout,
+	})
+	s.Close(nil)
+	return nil
+}
+
+func (mod *frontendModule) afterLogout(s *session) error {
 	uid := s.getUid()
 	if uid <= 0 {
 		return nil
@@ -381,8 +521,8 @@ func (mod *frontendModule) Broadcast(uids []int64, content []byte) error {
 	return nil
 }
 
-// Write implements frontend.Module Write method
-func (mod *frontendModule) Write(uid int64, content []byte) error {
+// Unicast implements frontend.Module Unicast method
+func (mod *frontendModule) Unicast(uid int64, content []byte) error {
 	s := mod.sessions.find(uid)
 	if s == nil {
 		mod.Logger().Debug().
@@ -431,10 +571,9 @@ func (mod *frontendModule) Kickout(uid int64, reason gatepb.KickoutReason) error
 		Int64("sid", s.id).
 		String("reason", reason.String()).
 		Print("kickout user")
-	kickout := &gatepb.Kickout{
+	s.send(&gatepb.Kickout{
 		Reason: int32(reason),
-	}
-	s.send(kickout)
+	})
 	s.Close(nil)
 	return nil
 }

@@ -6,27 +6,30 @@ option csharp_namespace = "proto.gatepb";
 option go_package = "proto/gatepb";
 option optimize_for = LITE_RUNTIME;
 
-// @Type(151)
+// @Type(150)
 message Request {
 	// session fields
 	int32 gid = 1; // gate id
 	int64 uid = 2; // user id
 	bytes ip = 3; // ip bytes
 
-	int32 contentType = 10;
 	bytes content = 11;
 }
 
-// @Type(152)
-message Response {
+// @Type(151)
+message Unicast {
 	int64 uid = 1;
-	int32 contentType = 2;
-	bytes content = 3;
+	bytes content = 2;
+}
+
+// @Type(152)
+message Broadcast {
+	repeated int64 uids = 1;
+	bytes content = 2;
 }
 
 // @Type(153)
-message Broadcast {
-	repeated int64 uids = 1;
-	int32 contentType = 2;
-	bytes content = 3;
+message Kickout {
+	int64 uid = 1;
+	int32 reason = 2;
 }

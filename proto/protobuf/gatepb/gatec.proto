@@ -23,13 +23,18 @@ message Pong {
 }
 
 // @Type(133)
-message Login {
+message LoginReq {
 	string token = 1;
 	bytes userdata = 2;
 }
 
 // @Type(134)
-message Logout {
+message LogoutReq {
+}
+
+// @Type(135)
+message LogoutRes {
+	KickoutReason reason = 1;
 }
 
 enum KickoutReason {
@@ -37,9 +42,5 @@ enum KickoutReason {
 	UserLogout = 1;
 	LoginAnotherDevice = 2;
 	Frozen = 3;
-}
-
-// @Type(135)
-message Kickout {
-	int32 reason = 1;
+	Overflow = 4;
 }

@@ -27,6 +27,7 @@ const (
 	KickoutReason_UserLogout         KickoutReason = 1
 	KickoutReason_LoginAnotherDevice KickoutReason = 2
 	KickoutReason_Frozen             KickoutReason = 3
+	KickoutReason_Overflow           KickoutReason = 4
 )
 
 // Enum value maps for KickoutReason.
@@ -36,12 +37,14 @@ var (
 		1: "UserLogout",
 		2: "LoginAnotherDevice",
 		3: "Frozen",
+		4: "Overflow",
 	}
 	KickoutReason_value = map[string]int32{
 		"ServiceClosed":      0,
 		"UserLogout":         1,
 		"LoginAnotherDevice": 2,
 		"Frozen":             3,
+		"Overflow":           4,
 	}
 )
 
@@ -225,7 +228,7 @@ func (x *Pong) GetContent() string {
 }
 
 // @Type(133)
-type Login struct {
+type LoginReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -234,8 +237,8 @@ type Login struct {
 	Userdata []byte `protobuf:"bytes,2,opt,name=userdata,proto3" json:"userdata,omitempty"`
 }
 
-func (x *Login) Reset() {
-	*x = Login{}
+func (x *LoginReq) Reset() {
+	*x = LoginReq{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -243,13 +246,13 @@ func (x *Login) Reset() {
 	}
 }
 
-func (x *Login) String() string {
+func (x *LoginReq) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Login) ProtoMessage() {}
+func (*LoginReq) ProtoMessage() {}
 
-func (x *Login) ProtoReflect() protoreflect.Message {
+func (x *LoginReq) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -261,19 +264,19 @@ func (x *Login) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Login.ProtoReflect.Descriptor instead.
-func (*Login) Descriptor() ([]byte, []int) {
+// Deprecated: Use LoginReq.ProtoReflect.Descriptor instead.
+func (*LoginReq) Descriptor() ([]byte, []int) {
 	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *Login) GetToken() string {
+func (x *LoginReq) GetToken() string {
 	if x != nil {
 		return x.Token
 	}
 	return ""
 }
 
-func (x *Login) GetUserdata() []byte {
+func (x *LoginReq) GetUserdata() []byte {
 	if x != nil {
 		return x.Userdata
 	}
@@ -281,14 +284,14 @@ func (x *Login) GetUserdata() []byte {
 }
 
 // @Type(134)
-type Logout struct {
+type LogoutReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 }
 
-func (x *Logout) Reset() {
-	*x = Logout{}
+func (x *LogoutReq) Reset() {
+	*x = LogoutReq{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -296,13 +299,13 @@ func (x *Logout) Reset() {
 	}
 }
 
-func (x *Logout) String() string {
+func (x *LogoutReq) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Logout) ProtoMessage() {}
+func (*LogoutReq) ProtoMessage() {}
 
-func (x *Logout) ProtoReflect() protoreflect.Message {
+func (x *LogoutReq) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -314,22 +317,22 @@ func (x *Logout) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Logout.ProtoReflect.Descriptor instead.
-func (*Logout) Descriptor() ([]byte, []int) {
+// Deprecated: Use LogoutReq.ProtoReflect.Descriptor instead.
+func (*LogoutReq) Descriptor() ([]byte, []int) {
 	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{4}
 }
 
 // @Type(135)
-type Kickout struct {
+type LogoutRes struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Reason int32 `protobuf:"varint,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	Reason KickoutReason `protobuf:"varint,1,opt,name=reason,proto3,enum=gatepb.KickoutReason" json:"reason,omitempty"`
 }
 
-func (x *Kickout) Reset() {
-	*x = Kickout{}
+func (x *LogoutRes) Reset() {
+	*x = LogoutRes{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -337,13 +340,13 @@ func (x *Kickout) Reset() {
 	}
 }
 
-func (x *Kickout) String() string {
+func (x *LogoutRes) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Kickout) ProtoMessage() {}
+func (*LogoutRes) ProtoMessage() {}
 
-func (x *Kickout) ProtoReflect() protoreflect.Message {
+func (x *LogoutRes) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_protobuf_gatepb_gatec_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -355,16 +358,16 @@ func (x *Kickout) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Kickout.ProtoReflect.Descriptor instead.
-func (*Kickout) Descriptor() ([]byte, []int) {
+// Deprecated: Use LogoutRes.ProtoReflect.Descriptor instead.
+func (*LogoutRes) Descriptor() ([]byte, []int) {
 	return file_proto_protobuf_gatepb_gatec_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *Kickout) GetReason() int32 {
+func (x *LogoutRes) GetReason() KickoutReason {
 	if x != nil {
 		return x.Reason
 	}
-	return 0
+	return KickoutReason_ServiceClosed
 }
 
 var File_proto_protobuf_gatepb_gatec_proto protoreflect.FileDescriptor
@@ -381,21 +384,24 @@ var file_proto_protobuf_gatepb_gatec_proto_rawDesc = []byte{
 	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x22, 0x20,
 	0x0a, 0x04, 0x50, 0x6f, 0x6e, 0x67, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e,
 	0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74,
-	0x22, 0x39, 0x0a, 0x05, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x6b,
-	0x65, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x12,
-	0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x0c, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x64, 0x61, 0x74, 0x61, 0x22, 0x08, 0x0a, 0x06, 0x4c,
-	0x6f, 0x67, 0x6f, 0x75, 0x74, 0x22, 0x21, 0x0a, 0x07, 0x4b, 0x69, 0x63, 0x6b, 0x6f, 0x75, 0x74,
-	0x12, 0x16, 0x0a, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05,
-	0x52, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x2a, 0x56, 0x0a, 0x0d, 0x4b, 0x69, 0x63, 0x6b,
-	0x6f, 0x75, 0x74, 0x52, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x12, 0x11, 0x0a, 0x0d, 0x53, 0x65, 0x72,
-	0x76, 0x69, 0x63, 0x65, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x64, 0x10, 0x00, 0x12, 0x0e, 0x0a, 0x0a,
-	0x55, 0x73, 0x65, 0x72, 0x4c, 0x6f, 0x67, 0x6f, 0x75, 0x74, 0x10, 0x01, 0x12, 0x16, 0x0a, 0x12,
-	0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x41, 0x6e, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x44, 0x65, 0x76, 0x69,
-	0x63, 0x65, 0x10, 0x02, 0x12, 0x0a, 0x0a, 0x06, 0x46, 0x72, 0x6f, 0x7a, 0x65, 0x6e, 0x10, 0x03,
-	0x42, 0x1f, 0x48, 0x03, 0x5a, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x61, 0x74, 0x65,
-	0x70, 0x62, 0xaa, 0x02, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x67, 0x61, 0x74, 0x65, 0x70,
-	0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x22, 0x3c, 0x0a, 0x08, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x52, 0x65, 0x71, 0x12, 0x14, 0x0a, 0x05,
+	0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x6f, 0x6b,
+	0x65, 0x6e, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x0c, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x64, 0x61, 0x74, 0x61, 0x22, 0x0b,
+	0x0a, 0x09, 0x4c, 0x6f, 0x67, 0x6f, 0x75, 0x74, 0x52, 0x65, 0x71, 0x22, 0x3a, 0x0a, 0x09, 0x4c,
+	0x6f, 0x67, 0x6f, 0x75, 0x74, 0x52, 0x65, 0x73, 0x12, 0x2d, 0x0a, 0x06, 0x72, 0x65, 0x61, 0x73,
+	0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x15, 0x2e, 0x67, 0x61, 0x74, 0x65, 0x70,
+	0x62, 0x2e, 0x4b, 0x69, 0x63, 0x6b, 0x6f, 0x75, 0x74, 0x52, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x52,
+	0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x2a, 0x64, 0x0a, 0x0d, 0x4b, 0x69, 0x63, 0x6b, 0x6f,
+	0x75, 0x74, 0x52, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x12, 0x11, 0x0a, 0x0d, 0x53, 0x65, 0x72, 0x76,
+	0x69, 0x63, 0x65, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x64, 0x10, 0x00, 0x12, 0x0e, 0x0a, 0x0a, 0x55,
+	0x73, 0x65, 0x72, 0x4c, 0x6f, 0x67, 0x6f, 0x75, 0x74, 0x10, 0x01, 0x12, 0x16, 0x0a, 0x12, 0x4c,
+	0x6f, 0x67, 0x69, 0x6e, 0x41, 0x6e, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x44, 0x65, 0x76, 0x69, 0x63,
+	0x65, 0x10, 0x02, 0x12, 0x0a, 0x0a, 0x06, 0x46, 0x72, 0x6f, 0x7a, 0x65, 0x6e, 0x10, 0x03, 0x12,
+	0x0c, 0x0a, 0x08, 0x4f, 0x76, 0x65, 0x72, 0x66, 0x6c, 0x6f, 0x77, 0x10, 0x04, 0x42, 0x1f, 0x48,
+	0x03, 0x5a, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62, 0xaa,
+	0x02, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -417,16 +423,17 @@ var file_proto_protobuf_gatepb_gatec_proto_goTypes = []interface{}{
 	(*Error)(nil),      // 1: gatepb.Error
 	(*Ping)(nil),       // 2: gatepb.Ping
 	(*Pong)(nil),       // 3: gatepb.Pong
-	(*Login)(nil),      // 4: gatepb.Login
-	(*Logout)(nil),     // 5: gatepb.Logout
-	(*Kickout)(nil),    // 6: gatepb.Kickout
+	(*LoginReq)(nil),   // 4: gatepb.LoginReq
+	(*LogoutReq)(nil),  // 5: gatepb.LogoutReq
+	(*LogoutRes)(nil),  // 6: gatepb.LogoutRes
 }
 var file_proto_protobuf_gatepb_gatec_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: gatepb.LogoutRes.reason:type_name -> gatepb.KickoutReason
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_proto_protobuf_gatepb_gatec_proto_init() }
@@ -472,7 +479,7 @@ func file_proto_protobuf_gatepb_gatec_proto_init() {
 			}
 		}
 		file_proto_protobuf_gatepb_gatec_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Login); i {
+			switch v := v.(*LoginReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -484,7 +491,7 @@ func file_proto_protobuf_gatepb_gatec_proto_init() {
 			}
 		}
 		file_proto_protobuf_gatepb_gatec_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Logout); i {
+			switch v := v.(*LogoutReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -496,7 +503,7 @@ func file_proto_protobuf_gatepb_gatec_proto_init() {
 			}
 		}
 		file_proto_protobuf_gatepb_gatec_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Kickout); i {
+			switch v := v.(*LogoutRes); i {
 			case 0:
 				return &v.state
 			case 1:

@@ -10,6 +10,7 @@ import (
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/text/resp"
+	"github.com/gopherd/gopherd/proto/gatepb"
 	"github.com/gopherd/jwt"
 	"github.com/gopherd/log"
 )
@@ -21,8 +22,9 @@ const (
 	stateCreated state = iota
 	statePendingLogin
 	stateLogged
-	stateClosing
 	stateOverflow
+	stateClosing
+	stateClosed
 )
 
 const (
@@ -34,8 +36,7 @@ const (
 
 // userdata of session
 type user struct {
-	device string
-	token  jwt.Payload
+	token jwt.Payload
 }
 
 // session event handler
@@ -68,7 +69,6 @@ type session struct {
 			send int64
 		}
 		writerMu sync.Mutex
-		// (TODO): limiter
 	}
 }
 
@@ -102,6 +102,7 @@ func (s *session) OnOpen() {
 
 // OnClose implements netutil.SessionEventHandler OnClose method
 func (s *session) OnClose(err error) {
+	s.setState(stateClosed)
 	if !netutil.IsNetworkError(err) {
 		s.logger.Warn().
 			Error("error", err).
@@ -150,18 +151,18 @@ func (s *session) Write(data []byte) (int, error) {
 
 // Close closes the session
 func (s *session) Close(err error) {
-	s.logger.Debug().Error("error", err).Print("close session")
 	s.setState(stateClosing)
+	s.logger.Debug().Error("error", err).Print("close session")
 	s.internal.session.Close(err)
 }
 
-func (sess *session) send(m proto.Message) error {
+func (s *session) send(m proto.Message) error {
 	buf := proto.AllocBuffer()
 	defer proto.FreeBuffer(buf)
-	if err := buf.Encode(m, sess.internal.session.ContentType()); err != nil {
+	if err := buf.Encode(m, s.internal.session.ContentType()); err != nil {
 		return err
 	}
-	_, err := sess.Write(buf.Bytes())
+	_, err := s.Write(buf.Bytes())
 	return err
 }
 
@@ -177,6 +178,10 @@ func (s *session) getUid() int64 {
 	return atomic.LoadInt64(&s.internal.uid)
 }
 
+func (s *session) getUser() user {
+	return s.internal.user
+}
+
 func (s *session) setUser(user user) {
 	s.internal.user = user
 	atomic.StoreInt64(&s.internal.uid, user.token.Uid)
@@ -186,9 +191,18 @@ func (s *session) getLastKeepaliveTime() int64 {
 	return atomic.LoadInt64(&s.internal.lastKeepaliveTime)
 }
 
+func (s *session) trySetLastUpdateSidTime(ttl, now int64) bool {
+	old := atomic.LoadInt64(&s.internal.lastUpdateSidTime)
+	if now > old+ttl {
+		return atomic.CompareAndSwapInt64(&s.internal.lastUpdateSidTime, old, now)
+	}
+	return false
+}
+
 type pendingSession struct {
-	uid  int64
-	meta uint32
+	uid      int64
+	meta     uint32
+	userdata []byte
 }
 
 const (
@@ -204,21 +218,19 @@ type sessions struct {
 	nextSessionId int64
 	nextbucket    int
 
-	mutex    sync.RWMutex
-	uid2sid  map[int64]int64
-	ips      map[string]int
-	pendings map[int64]*pendingSession
-	nbucket  int
-	buckets  [maxbuckets]map[int64]*session
+	mutex   sync.RWMutex
+	uid2sid map[int64]int64
+	ips     map[string]int
+	nbucket int
+	buckets [maxbuckets]map[int64]*session
 }
 
 func newSessions(mod *frontendModule) *sessions {
 	ss := &sessions{
-		mod:      mod,
-		uid2sid:  make(map[int64]int64),
-		ips:      make(map[string]int),
-		pendings: make(map[int64]*pendingSession),
-		nbucket:  1,
+		mod:     mod,
+		uid2sid: make(map[int64]int64),
+		ips:     make(map[string]int),
+		nbucket: 1,
 	}
 	for i := 0; i < ss.nbucket; i++ {
 		ss.buckets[i] = make(map[int64]*session)
@@ -264,6 +276,9 @@ func (ss *sessions) shutdown() {
 			if state := s.getState(); state == stateClosing || state == stateOverflow {
 				continue
 			}
+			s.send(&gatepb.Kickout{
+				Reason: int32(gatepb.KickoutReason_ServiceClosed),
+			})
 			s.Close(nil)
 		}
 	}
