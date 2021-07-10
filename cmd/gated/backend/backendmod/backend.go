@@ -1,11 +1,15 @@
 package backendmod
 
 import (
+	"net"
+	"path"
 	"strconv"
 
 	"github.com/gopherd/doge/mq"
 	"github.com/gopherd/doge/proto"
+	"github.com/gopherd/doge/proto/router"
 	"github.com/gopherd/doge/service"
+	"github.com/gopherd/doge/service/discovery"
 	"github.com/gopherd/doge/service/module"
 	"github.com/gopherd/jwt"
 
@@ -26,15 +30,17 @@ func New(service Service) interface {
 // Service is required by backend module
 type Service interface {
 	service.Meta
-	Config() *config.Config    // Config of service
-	MQ() mq.Conn               // MQ instance
-	Frontend() frontend.Module // Frontend module
+	Config() *config.Config         // Config of service
+	MQ() mq.Conn                    // MQ instance
+	Discovery() discovery.Discovery // Discovery instance
+	Frontend() frontend.Module      // Frontend module
 }
 
 // backendModule implements backend.Module interface
 type backendModule struct {
 	*module.BaseModule
-	service Service
+	service     Service
+	routerCache *router.Cache
 }
 
 func newBackendModule(service Service) *backendModule {
@@ -49,7 +55,11 @@ func (mod *backendModule) Init() error {
 	if err := mod.BaseModule.Init(); err != nil {
 		return err
 	}
-	topic := mod.service.Name() + "/" + strconv.FormatInt(mod.service.ID(), 10)
+	mod.routerCache = router.NewCache(mod.service.Discovery())
+	if err := mod.routerCache.Init(); err != nil {
+		return err
+	}
+	topic := path.Join(mod.service.Name(), strconv.FormatInt(mod.service.ID(), 10))
 	mod.service.MQ().Subscribe(topic, mq.FuncConsumer(mod.consume))
 	return nil
 }
@@ -72,7 +82,7 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 		mod.Logger().Error().
 			Int("size", len(msg)).
 			Error("error", err).
-			Print("unmarshal mq message error")
+			Print("unmarshal message from mq error")
 		return
 	}
 	mod.Logger().Debug().
@@ -124,19 +134,60 @@ func (mod *backendModule) kickout(ptc *gatepb.Kickout) error {
 }
 
 // Forward implements backend.Module Forward method
-func (mod *backendModule) Forward(uid int64, typ proto.Type, body proto.Body) error {
-	// (TODO) where to forward
-	return nil
+func (mod *backendModule) Forward(uid int64, typ proto.Type, body []byte) error {
+	return mod.send(uid, typ, &gatepb.Forward{
+		Gid:        int64(mod.service.ID()),
+		Uid:        uid,
+		MsgType:    int32(typ),
+		MsgContent: []byte(body),
+	})
 }
 
 // Login implements backend.Module Login method
 func (mod *backendModule) Login(claims jwt.Payload, replace bool) error {
-	// (TODO) handle login
-	return nil
+	m := &gatepb.UserLogin{
+		Gid:      int64(mod.service.ID()),
+		Uid:      claims.ID,
+		Ip:       []byte(net.ParseIP(claims.IP)),
+		Userdata: []byte(claims.Userdata),
+		Replace:  replace,
+	}
+	return mod.send(claims.ID, m.Type(), m)
 }
 
 // Logout implements backend.Module Logout method
 func (mod *backendModule) Logout(uid int64) error {
-	// (TODO) handle logout
-	return nil
+	m := &gatepb.UserLogout{
+		Uid: uid,
+	}
+	return mod.send(uid, m.Type(), m)
+}
+
+func (mod *backendModule) send(uid int64, typ proto.Type, m proto.Message) error {
+	modName := proto.Moduleof(typ)
+	if modName == "" {
+		mod.Logger().Warn().
+			Int64("uid", uid).
+			Int("type", int(typ)).
+			Print("module not found")
+		return proto.ErrUnrecognizedType
+	}
+	topic, err := mod.routerCache.Lookup(uid, modName, typ)
+	if err != nil {
+		mod.Logger().Warn().
+			Int64("uid", uid).
+			Int("type", int(typ)).
+			String("module", modName).
+			Print("router not found")
+		return err
+	}
+	content, err := proto.Marshal(m)
+	if err != nil {
+		mod.Logger().Warn().
+			String("topic", topic).
+			Int("type", int(typ)).
+			Print("marshal message error")
+		return err
+	}
+	return mod.service.MQ().Publish(topic, content)
 }

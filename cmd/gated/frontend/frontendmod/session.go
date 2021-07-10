@@ -276,7 +276,7 @@ func (ss *sessions) shutdown() {
 				continue
 			}
 			s.send(&gatepb.Kickout{
-				Reason: int32(gatepb.KickoutReason_ServiceClosed),
+				Reason: int32(gatepb.KickoutReason_ReasonServiceClosed),
 			})
 			s.Close(nil)
 		}
@@ -421,8 +421,8 @@ func (ss *sessions) broadcast(data []byte, now int64) {
 			if _, err := s.Write(data); err != nil {
 				ss.mod.Logger().Warn().
 					Int64("sid", sid).
-					Error("error", err).
 					Int("size", len(data)).
+					Error("error", err).
 					Print("broadcast to session error")
 			}
 		}

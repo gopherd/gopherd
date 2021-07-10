@@ -5,23 +5,29 @@ package gatepb
 import registry "github.com/gopherd/doge/proto"
 
 const (
-	RequestType   = 150
-	UnicastType   = 151
-	BroadcastType = 152
-	KickoutType   = 153
-	UserLoginType = 154
+	ForwardType        = 150
+	UnicastType        = 151
+	BroadcastType      = 152
+	KickoutType        = 153
+	UserLoginType      = 154
+	UserLogoutType     = 155
+	RegisterRouterType = 160
 )
 
 func init() {
-	registry.Register("gatepb", RequestType, func() registry.Message { return new(Request) })
+	registry.Register("gatepb", ForwardType, func() registry.Message { return new(Forward) })
 	registry.Register("gatepb", UnicastType, func() registry.Message { return new(Unicast) })
 	registry.Register("gatepb", BroadcastType, func() registry.Message { return new(Broadcast) })
 	registry.Register("gatepb", KickoutType, func() registry.Message { return new(Kickout) })
 	registry.Register("gatepb", UserLoginType, func() registry.Message { return new(UserLogin) })
+	registry.Register("gatepb", UserLogoutType, func() registry.Message { return new(UserLogout) })
+	registry.Register("gatepb", RegisterRouterType, func() registry.Message { return new(RegisterRouter) })
 }
 
-func (*Request) Type() registry.Type   { return RequestType }
-func (*Unicast) Type() registry.Type   { return UnicastType }
-func (*Broadcast) Type() registry.Type { return BroadcastType }
-func (*Kickout) Type() registry.Type   { return KickoutType }
-func (*UserLogin) Type() registry.Type { return UserLoginType }
+func (*Forward) Type() registry.Type        { return ForwardType }
+func (*Unicast) Type() registry.Type        { return UnicastType }
+func (*Broadcast) Type() registry.Type      { return BroadcastType }
+func (*Kickout) Type() registry.Type        { return KickoutType }
+func (*UserLogin) Type() registry.Type      { return UserLoginType }
+func (*UserLogout) Type() registry.Type     { return UserLogoutType }
+func (*RegisterRouter) Type() registry.Type { return RegisterRouterType }

@@ -37,9 +37,9 @@ message LogoutRes {
 }
 
 enum KickoutReason {
-	ServiceClosed = 0;
-	UserLogout = 1;
-	LoginAnotherDevice = 2;
-	Frozen = 3;
-	Overflow = 4;
+	ReasonServiceClosed = 0;
+	ReasonUserLogout = 1;
+	ReasonLoginAnotherDevice = 2;
+	ReasonFrozen = 3;
+	ReasonOverflow = 4;
 }

@@ -7,13 +7,13 @@ option go_package = "proto/gatepb";
 option optimize_for = LITE_RUNTIME;
 
 // @Type(150)
-message Request {
+message Forward {
 	// session fields
-	int32 gid = 1; // gate id
+	int64 gid = 1; // gate id
 	int64 uid = 2; // user id
-	bytes ip = 3; // ip bytes
 
-	bytes content = 11;
+	int32 msgType = 10;
+	bytes msgContent = 11;
 }
 
 // @Type(151)
@@ -36,9 +36,42 @@ message Kickout {
 
 // @Type(154)
 message UserLogin {
-	int32 gid = 1;
+	int64 gid = 1;
 	int64 uid = 2;
 	bytes ip = 3;
 	bytes userdata = 4;
 	bool replace = 5;
+}
+
+// @Type(155)
+message UserLogout {
+	int64 uid = 1;
+}
+
+// Target of router
+message Target {
+	string address = 1;
+	int32 priority = 2;
+}
+
+message RouterKey {
+	string module = 1;
+	int32 minType = 2;
+	int32 maxType = 3;
+}
+
+message Router {
+	RouterKey key = 1;
+	repeated Target targets = 2;
+}
+
+// @Type(160)
+message RegisterRouter {
+	int64 uid = 1;
+	repeated Router routers = 2;
+}
+
+message UnregisterRouter {
+	int64 uid = 1;
+	repeated RouterKey keys = 2;
 }

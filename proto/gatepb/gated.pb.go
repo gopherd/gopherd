@@ -21,20 +21,20 @@ const (
 )
 
 // @Type(150)
-type Request struct {
+type Forward struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
 	// session fields
-	Gid     int32  `protobuf:"varint,1,opt,name=gid,proto3" json:"gid,omitempty"` // gate id
-	Uid     int64  `protobuf:"varint,2,opt,name=uid,proto3" json:"uid,omitempty"` // user id
-	Ip      []byte `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"`    // ip bytes
-	Content []byte `protobuf:"bytes,11,opt,name=content,proto3" json:"content,omitempty"`
+	Gid        int64  `protobuf:"varint,1,opt,name=gid,proto3" json:"gid,omitempty"` // gate id
+	Uid        int64  `protobuf:"varint,2,opt,name=uid,proto3" json:"uid,omitempty"` // user id
+	MsgType    int32  `protobuf:"varint,10,opt,name=msgType,proto3" json:"msgType,omitempty"`
+	MsgContent []byte `protobuf:"bytes,11,opt,name=msgContent,proto3" json:"msgContent,omitempty"`
 }
 
-func (x *Request) Reset() {
-	*x = Request{}
+func (x *Forward) Reset() {
+	*x = Forward{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -42,13 +42,13 @@ func (x *Request) Reset() {
 	}
 }
 
-func (x *Request) String() string {
+func (x *Forward) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Request) ProtoMessage() {}
+func (*Forward) ProtoMessage() {}
 
-func (x *Request) ProtoReflect() protoreflect.Message {
+func (x *Forward) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -60,35 +60,35 @@ func (x *Request) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Request.ProtoReflect.Descriptor instead.
-func (*Request) Descriptor() ([]byte, []int) {
+// Deprecated: Use Forward.ProtoReflect.Descriptor instead.
+func (*Forward) Descriptor() ([]byte, []int) {
 	return file_proto_protobuf_gatepb_gated_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Request) GetGid() int32 {
+func (x *Forward) GetGid() int64 {
 	if x != nil {
 		return x.Gid
 	}
 	return 0
 }
 
-func (x *Request) GetUid() int64 {
+func (x *Forward) GetUid() int64 {
 	if x != nil {
 		return x.Uid
 	}
 	return 0
 }
 
-func (x *Request) GetIp() []byte {
+func (x *Forward) GetMsgType() int32 {
 	if x != nil {
-		return x.Ip
+		return x.MsgType
 	}
-	return nil
+	return 0
 }
 
-func (x *Request) GetContent() []byte {
+func (x *Forward) GetMsgContent() []byte {
 	if x != nil {
-		return x.Content
+		return x.MsgContent
 	}
 	return nil
 }
@@ -267,7 +267,7 @@ type UserLogin struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Gid      int32  `protobuf:"varint,1,opt,name=gid,proto3" json:"gid,omitempty"`
+	Gid      int64  `protobuf:"varint,1,opt,name=gid,proto3" json:"gid,omitempty"`
 	Uid      int64  `protobuf:"varint,2,opt,name=uid,proto3" json:"uid,omitempty"`
 	Ip       []byte `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"`
 	Userdata []byte `protobuf:"bytes,4,opt,name=userdata,proto3" json:"userdata,omitempty"`
@@ -306,7 +306,7 @@ func (*UserLogin) Descriptor() ([]byte, []int) {
 	return file_proto_protobuf_gatepb_gated_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *UserLogin) GetGid() int32 {
+func (x *UserLogin) GetGid() int64 {
 	if x != nil {
 		return x.Gid
 	}
@@ -341,17 +341,351 @@ func (x *UserLogin) GetReplace() bool {
 	return false
 }
 
+// @Type(155)
+type UserLogout struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Uid int64 `protobuf:"varint,1,opt,name=uid,proto3" json:"uid,omitempty"`
+}
+
+func (x *UserLogout) Reset() {
+	*x = UserLogout{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UserLogout) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserLogout) ProtoMessage() {}
+
+func (x *UserLogout) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserLogout.ProtoReflect.Descriptor instead.
+func (*UserLogout) Descriptor() ([]byte, []int) {
+	return file_proto_protobuf_gatepb_gated_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UserLogout) GetUid() int64 {
+	if x != nil {
+		return x.Uid
+	}
+	return 0
+}
+
+// Target of router
+type Target struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Address  string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Priority int32  `protobuf:"varint,2,opt,name=priority,proto3" json:"priority,omitempty"`
+}
+
+func (x *Target) Reset() {
+	*x = Target{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Target) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Target) ProtoMessage() {}
+
+func (x *Target) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Target.ProtoReflect.Descriptor instead.
+func (*Target) Descriptor() ([]byte, []int) {
+	return file_proto_protobuf_gatepb_gated_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Target) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *Target) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
+type RouterKey struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Module  string `protobuf:"bytes,1,opt,name=module,proto3" json:"module,omitempty"`
+	MinType int32  `protobuf:"varint,2,opt,name=minType,proto3" json:"minType,omitempty"`
+	MaxType int32  `protobuf:"varint,3,opt,name=maxType,proto3" json:"maxType,omitempty"`
+}
+
+func (x *RouterKey) Reset() {
+	*x = RouterKey{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RouterKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RouterKey) ProtoMessage() {}
+
+func (x *RouterKey) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RouterKey.ProtoReflect.Descriptor instead.
+func (*RouterKey) Descriptor() ([]byte, []int) {
+	return file_proto_protobuf_gatepb_gated_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RouterKey) GetModule() string {
+	if x != nil {
+		return x.Module
+	}
+	return ""
+}
+
+func (x *RouterKey) GetMinType() int32 {
+	if x != nil {
+		return x.MinType
+	}
+	return 0
+}
+
+func (x *RouterKey) GetMaxType() int32 {
+	if x != nil {
+		return x.MaxType
+	}
+	return 0
+}
+
+type Router struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Key     *RouterKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Targets []*Target  `protobuf:"bytes,2,rep,name=targets,proto3" json:"targets,omitempty"`
+}
+
+func (x *Router) Reset() {
+	*x = Router{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Router) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Router) ProtoMessage() {}
+
+func (x *Router) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Router.ProtoReflect.Descriptor instead.
+func (*Router) Descriptor() ([]byte, []int) {
+	return file_proto_protobuf_gatepb_gated_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *Router) GetKey() *RouterKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *Router) GetTargets() []*Target {
+	if x != nil {
+		return x.Targets
+	}
+	return nil
+}
+
+// @Type(160)
+type RegisterRouter struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Uid     int64     `protobuf:"varint,1,opt,name=uid,proto3" json:"uid,omitempty"`
+	Routers []*Router `protobuf:"bytes,2,rep,name=routers,proto3" json:"routers,omitempty"`
+}
+
+func (x *RegisterRouter) Reset() {
+	*x = RegisterRouter{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterRouter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterRouter) ProtoMessage() {}
+
+func (x *RegisterRouter) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterRouter.ProtoReflect.Descriptor instead.
+func (*RegisterRouter) Descriptor() ([]byte, []int) {
+	return file_proto_protobuf_gatepb_gated_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RegisterRouter) GetUid() int64 {
+	if x != nil {
+		return x.Uid
+	}
+	return 0
+}
+
+func (x *RegisterRouter) GetRouters() []*Router {
+	if x != nil {
+		return x.Routers
+	}
+	return nil
+}
+
+type UnregisterRouter struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Uid  int64        `protobuf:"varint,1,opt,name=uid,proto3" json:"uid,omitempty"`
+	Keys []*RouterKey `protobuf:"bytes,2,rep,name=keys,proto3" json:"keys,omitempty"`
+}
+
+func (x *UnregisterRouter) Reset() {
+	*x = UnregisterRouter{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UnregisterRouter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnregisterRouter) ProtoMessage() {}
+
+func (x *UnregisterRouter) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_protobuf_gatepb_gated_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnregisterRouter.ProtoReflect.Descriptor instead.
+func (*UnregisterRouter) Descriptor() ([]byte, []int) {
+	return file_proto_protobuf_gatepb_gated_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UnregisterRouter) GetUid() int64 {
+	if x != nil {
+		return x.Uid
+	}
+	return 0
+}
+
+func (x *UnregisterRouter) GetKeys() []*RouterKey {
+	if x != nil {
+		return x.Keys
+	}
+	return nil
+}
+
 var File_proto_protobuf_gatepb_gated_proto protoreflect.FileDescriptor
 
 var file_proto_protobuf_gatepb_gated_proto_rawDesc = []byte{
 	0x0a, 0x21, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66,
 	0x2f, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62, 0x2f, 0x67, 0x61, 0x74, 0x65, 0x64, 0x2e, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x12, 0x06, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62, 0x22, 0x57, 0x0a, 0x07, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x67, 0x69, 0x64, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x05, 0x52, 0x03, 0x67, 0x69, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x69, 0x64, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x03, 0x75, 0x69, 0x64, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x70,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x02, 0x69, 0x70, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f,
-	0x6e, 0x74, 0x65, 0x6e, 0x74, 0x18, 0x0b, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x63, 0x6f, 0x6e,
+	0x6f, 0x74, 0x6f, 0x12, 0x06, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62, 0x22, 0x67, 0x0a, 0x07, 0x46,
+	0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x67, 0x69, 0x64, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x03, 0x52, 0x03, 0x67, 0x69, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x69, 0x64, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x03, 0x75, 0x69, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x6d, 0x73,
+	0x67, 0x54, 0x79, 0x70, 0x65, 0x18, 0x0a, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x6d, 0x73, 0x67,
+	0x54, 0x79, 0x70, 0x65, 0x12, 0x1e, 0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x43, 0x6f, 0x6e, 0x74, 0x65,
+	0x6e, 0x74, 0x18, 0x0b, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0a, 0x6d, 0x73, 0x67, 0x43, 0x6f, 0x6e,
 	0x74, 0x65, 0x6e, 0x74, 0x22, 0x35, 0x0a, 0x07, 0x55, 0x6e, 0x69, 0x63, 0x61, 0x73, 0x74, 0x12,
 	0x10, 0x0a, 0x03, 0x75, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x03, 0x75, 0x69,
 	0x64, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x18, 0x02, 0x20, 0x01,
@@ -364,15 +698,42 @@ var file_proto_protobuf_gatepb_gated_proto_rawDesc = []byte{
 	0x75, 0x69, 0x64, 0x12, 0x16, 0x0a, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x18, 0x02, 0x20,
 	0x01, 0x28, 0x05, 0x52, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x22, 0x75, 0x0a, 0x09, 0x55,
 	0x73, 0x65, 0x72, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x12, 0x10, 0x0a, 0x03, 0x67, 0x69, 0x64, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x03, 0x67, 0x69, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x69,
+	0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x03, 0x67, 0x69, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x69,
 	0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x03, 0x75, 0x69, 0x64, 0x12, 0x0e, 0x0a, 0x02,
 	0x69, 0x70, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x02, 0x69, 0x70, 0x12, 0x1a, 0x0a, 0x08,
 	0x75, 0x73, 0x65, 0x72, 0x64, 0x61, 0x74, 0x61, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x08,
 	0x75, 0x73, 0x65, 0x72, 0x64, 0x61, 0x74, 0x61, 0x12, 0x18, 0x0a, 0x07, 0x72, 0x65, 0x70, 0x6c,
 	0x61, 0x63, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x72, 0x65, 0x70, 0x6c, 0x61,
-	0x63, 0x65, 0x42, 0x1f, 0x48, 0x03, 0x5a, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x61,
-	0x74, 0x65, 0x70, 0x62, 0xaa, 0x02, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x67, 0x61, 0x74,
-	0x65, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x63, 0x65, 0x22, 0x1e, 0x0a, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x6f, 0x67, 0x6f, 0x75, 0x74,
+	0x12, 0x10, 0x0a, 0x03, 0x75, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x03, 0x75,
+	0x69, 0x64, 0x22, 0x3e, 0x0a, 0x06, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x12, 0x18, 0x0a, 0x07,
+	0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61,
+	0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x1a, 0x0a, 0x08, 0x70, 0x72, 0x69, 0x6f, 0x72, 0x69,
+	0x74, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x08, 0x70, 0x72, 0x69, 0x6f, 0x72, 0x69,
+	0x74, 0x79, 0x22, 0x57, 0x0a, 0x09, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x72, 0x4b, 0x65, 0x79, 0x12,
+	0x16, 0x0a, 0x06, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x06, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x6d, 0x69, 0x6e, 0x54, 0x79,
+	0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x6d, 0x69, 0x6e, 0x54, 0x79, 0x70,
+	0x65, 0x12, 0x18, 0x0a, 0x07, 0x6d, 0x61, 0x78, 0x54, 0x79, 0x70, 0x65, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x05, 0x52, 0x07, 0x6d, 0x61, 0x78, 0x54, 0x79, 0x70, 0x65, 0x22, 0x57, 0x0a, 0x06, 0x52,
+	0x6f, 0x75, 0x74, 0x65, 0x72, 0x12, 0x23, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x11, 0x2e, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62, 0x2e, 0x52, 0x6f, 0x75, 0x74,
+	0x65, 0x72, 0x4b, 0x65, 0x79, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x28, 0x0a, 0x07, 0x74, 0x61,
+	0x72, 0x67, 0x65, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x67, 0x61,
+	0x74, 0x65, 0x70, 0x62, 0x2e, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x52, 0x07, 0x74, 0x61, 0x72,
+	0x67, 0x65, 0x74, 0x73, 0x22, 0x4c, 0x0a, 0x0e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72,
+	0x52, 0x6f, 0x75, 0x74, 0x65, 0x72, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x69, 0x64, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x03, 0x52, 0x03, 0x75, 0x69, 0x64, 0x12, 0x28, 0x0a, 0x07, 0x72, 0x6f, 0x75, 0x74,
+	0x65, 0x72, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x67, 0x61, 0x74, 0x65,
+	0x70, 0x62, 0x2e, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x72, 0x52, 0x07, 0x72, 0x6f, 0x75, 0x74, 0x65,
+	0x72, 0x73, 0x22, 0x4b, 0x0a, 0x10, 0x55, 0x6e, 0x72, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72,
+	0x52, 0x6f, 0x75, 0x74, 0x65, 0x72, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x69, 0x64, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x03, 0x52, 0x03, 0x75, 0x69, 0x64, 0x12, 0x25, 0x0a, 0x04, 0x6b, 0x65, 0x79, 0x73,
+	0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62, 0x2e,
+	0x52, 0x6f, 0x75, 0x74, 0x65, 0x72, 0x4b, 0x65, 0x79, 0x52, 0x04, 0x6b, 0x65, 0x79, 0x73, 0x42,
+	0x1f, 0x48, 0x03, 0x5a, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x61, 0x74, 0x65, 0x70,
+	0x62, 0xaa, 0x02, 0x0c, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x67, 0x61, 0x74, 0x65, 0x70, 0x62,
+	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -387,20 +748,30 @@ func file_proto_protobuf_gatepb_gated_proto_rawDescGZIP() []byte {
 	return file_proto_protobuf_gatepb_gated_proto_rawDescData
 }
 
-var file_proto_protobuf_gatepb_gated_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_proto_protobuf_gatepb_gated_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_proto_protobuf_gatepb_gated_proto_goTypes = []interface{}{
-	(*Request)(nil),   // 0: gatepb.Request
-	(*Unicast)(nil),   // 1: gatepb.Unicast
-	(*Broadcast)(nil), // 2: gatepb.Broadcast
-	(*Kickout)(nil),   // 3: gatepb.Kickout
-	(*UserLogin)(nil), // 4: gatepb.UserLogin
+	(*Forward)(nil),          // 0: gatepb.Forward
+	(*Unicast)(nil),          // 1: gatepb.Unicast
+	(*Broadcast)(nil),        // 2: gatepb.Broadcast
+	(*Kickout)(nil),          // 3: gatepb.Kickout
+	(*UserLogin)(nil),        // 4: gatepb.UserLogin
+	(*UserLogout)(nil),       // 5: gatepb.UserLogout
+	(*Target)(nil),           // 6: gatepb.Target
+	(*RouterKey)(nil),        // 7: gatepb.RouterKey
+	(*Router)(nil),           // 8: gatepb.Router
+	(*RegisterRouter)(nil),   // 9: gatepb.RegisterRouter
+	(*UnregisterRouter)(nil), // 10: gatepb.UnregisterRouter
 }
 var file_proto_protobuf_gatepb_gated_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	7, // 0: gatepb.Router.key:type_name -> gatepb.RouterKey
+	6, // 1: gatepb.Router.targets:type_name -> gatepb.Target
+	8, // 2: gatepb.RegisterRouter.routers:type_name -> gatepb.Router
+	7, // 3: gatepb.UnregisterRouter.keys:type_name -> gatepb.RouterKey
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proto_protobuf_gatepb_gated_proto_init() }
@@ -410,7 +781,7 @@ func file_proto_protobuf_gatepb_gated_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_proto_protobuf_gatepb_gated_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Request); i {
+			switch v := v.(*Forward); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -469,6 +840,78 @@ func file_proto_protobuf_gatepb_gated_proto_init() {
 				return nil
 			}
 		}
+		file_proto_protobuf_gatepb_gated_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UserLogout); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_protobuf_gatepb_gated_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Target); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_protobuf_gatepb_gated_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RouterKey); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_protobuf_gatepb_gated_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Router); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_protobuf_gatepb_gated_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RegisterRouter); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_protobuf_gatepb_gated_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UnregisterRouter); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -476,7 +919,7 @@ func file_proto_protobuf_gatepb_gated_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_protobuf_gatepb_gated_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

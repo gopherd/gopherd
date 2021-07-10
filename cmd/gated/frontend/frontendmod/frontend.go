@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"path"
 	"strconv"
@@ -341,7 +342,16 @@ func (mod *frontendModule) delUserLogged(uid int64) (bool, error) {
 
 // forward forwards message to other services
 func (mod *frontendModule) forward(s *session, typ proto.Type, body proto.Body) error {
-	return mod.service.Backend().Forward(s.getUid(), typ, body)
+	content, err := ioutil.ReadAll(body)
+	if err != nil {
+		mod.Logger().Warn().
+			Error("error", err).
+			Int64("uid", s.getUid()).
+			Int("type", int(typ)).
+			Print("read body error")
+		return err
+	}
+	return mod.service.Backend().Forward(s.getUid(), typ, content)
 }
 
 // ping handles Ping message
@@ -374,7 +384,7 @@ func (mod *frontendModule) login(s *session, req *gatepb.LoginReq) error {
 	cfg := mod.service.Config()
 	if s.getState() == stateOverflow {
 		s.send(&gatepb.LogoutRes{
-			Reason: gatepb.KickoutReason_Overflow,
+			Reason: gatepb.KickoutReason_ReasonOverflow,
 		})
 		s.Close(nil)
 		return nil
@@ -448,7 +458,7 @@ func (mod *frontendModule) retryLogin(sid int64, ps *pendingSession, now int64) 
 			Error("error", err).
 			Print("set user logged failed")
 		s.send(&gatepb.LogoutRes{
-			Reason: gatepb.KickoutReason_LoginAnotherDevice,
+			Reason: gatepb.KickoutReason_ReasonLoginAnotherDevice,
 		})
 		s.Close(nil)
 		return true
@@ -462,7 +472,7 @@ func (mod *frontendModule) retryLogin(sid int64, ps *pendingSession, now int64) 
 			Int64("uid", ps.uid).
 			Print("user login repeated")
 		s.send(&gatepb.LogoutRes{
-			Reason: gatepb.KickoutReason_LoginAnotherDevice,
+			Reason: gatepb.KickoutReason_ReasonLoginAnotherDevice,
 		})
 		s.Close(nil)
 		return true
@@ -484,7 +494,7 @@ func (mod *frontendModule) afterLogin(s *session) error {
 
 func (mod *frontendModule) logout(s *session, req *gatepb.LogoutReq) error {
 	s.send(&gatepb.LogoutRes{
-		Reason: gatepb.KickoutReason_UserLogout,
+		Reason: gatepb.KickoutReason_ReasonUserLogout,
 	})
 	s.Close(nil)
 	return nil
