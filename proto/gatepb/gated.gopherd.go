@@ -5,13 +5,14 @@ package gatepb
 import registry "github.com/gopherd/doge/proto"
 
 const (
-	ForwardType        = 150
-	UnicastType        = 151
-	BroadcastType      = 152
-	KickoutType        = 153
-	UserLoginType      = 154
-	UserLogoutType     = 155
-	RegisterRouterType = 160
+	ForwardType          = 150
+	UnicastType          = 151
+	BroadcastType        = 152
+	KickoutType          = 153
+	UserLoginType        = 154
+	UserLogoutType       = 155
+	RegisterRouterType   = 161
+	UnregisterRouterType = 162
 )
 
 func init() {
@@ -22,12 +23,14 @@ func init() {
 	registry.Register("gatepb", UserLoginType, func() registry.Message { return new(UserLogin) })
 	registry.Register("gatepb", UserLogoutType, func() registry.Message { return new(UserLogout) })
 	registry.Register("gatepb", RegisterRouterType, func() registry.Message { return new(RegisterRouter) })
+	registry.Register("gatepb", UnregisterRouterType, func() registry.Message { return new(UnregisterRouter) })
 }
 
-func (*Forward) Type() registry.Type        { return ForwardType }
-func (*Unicast) Type() registry.Type        { return UnicastType }
-func (*Broadcast) Type() registry.Type      { return BroadcastType }
-func (*Kickout) Type() registry.Type        { return KickoutType }
-func (*UserLogin) Type() registry.Type      { return UserLoginType }
-func (*UserLogout) Type() registry.Type     { return UserLogoutType }
-func (*RegisterRouter) Type() registry.Type { return RegisterRouterType }
+func (*Forward) Type() registry.Type          { return ForwardType }
+func (*Unicast) Type() registry.Type          { return UnicastType }
+func (*Broadcast) Type() registry.Type        { return BroadcastType }
+func (*Kickout) Type() registry.Type          { return KickoutType }
+func (*UserLogin) Type() registry.Type        { return UserLoginType }
+func (*UserLogout) Type() registry.Type       { return UserLogoutType }
+func (*RegisterRouter) Type() registry.Type   { return RegisterRouterType }
+func (*UnregisterRouter) Type() registry.Type { return UnregisterRouterType }

@@ -48,30 +48,13 @@ message UserLogout {
 	int64 uid = 1;
 }
 
-// Target of router
-message Target {
-	string address = 1;
-	int32 priority = 2;
-}
-
-message RouterKey {
-	string module = 1;
-	int32 minType = 2;
-	int32 maxType = 3;
-}
-
-message Router {
-	RouterKey key = 1;
-	repeated Target targets = 2;
-}
-
-// @Type(160)
+// @Type(161)
 message RegisterRouter {
-	int64 uid = 1;
-	repeated Router routers = 2;
+	string mod = 1;
+	string addr = 2;
 }
 
+// @Type(162)
 message UnregisterRouter {
-	int64 uid = 1;
-	repeated RouterKey keys = 2;
+	string mod = 1;
 }

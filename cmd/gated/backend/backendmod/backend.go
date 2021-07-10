@@ -91,6 +91,10 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 		Int("type", int(m.Type())).
 		Print("received a message from mq")
 	switch ptc := m.(type) {
+	case *gatepb.RegisterRouter:
+		mod.routerCache.Add(ptc.Mod, ptc.Addr)
+	case *gatepb.UnregisterRouter:
+		mod.routerCache.Remove(ptc.Mod)
 	case *gatepb.Broadcast:
 		err = mod.broadcast(ptc)
 	case *gatepb.Unicast:
@@ -135,7 +139,7 @@ func (mod *backendModule) kickout(ptc *gatepb.Kickout) error {
 
 // Forward implements backend.Module Forward method
 func (mod *backendModule) Forward(uid int64, typ proto.Type, body []byte) error {
-	return mod.send(uid, typ, &gatepb.Forward{
+	return mod.send(typ, &gatepb.Forward{
 		Gid:        int64(mod.service.ID()),
 		Uid:        uid,
 		MsgType:    int32(typ),
@@ -152,7 +156,7 @@ func (mod *backendModule) Login(claims jwt.Payload, replace bool) error {
 		Userdata: []byte(claims.Userdata),
 		Replace:  replace,
 	}
-	return mod.send(claims.ID, m.Type(), m)
+	return mod.send(m.Type(), m)
 }
 
 // Logout implements backend.Module Logout method
@@ -160,22 +164,20 @@ func (mod *backendModule) Logout(uid int64) error {
 	m := &gatepb.UserLogout{
 		Uid: uid,
 	}
-	return mod.send(uid, m.Type(), m)
+	return mod.send(m.Type(), m)
 }
 
-func (mod *backendModule) send(uid int64, typ proto.Type, m proto.Message) error {
+func (mod *backendModule) send(typ proto.Type, m proto.Message) error {
 	modName := proto.Moduleof(typ)
 	if modName == "" {
 		mod.Logger().Warn().
-			Int64("uid", uid).
 			Int("type", int(typ)).
 			Print("module not found")
 		return proto.ErrUnrecognizedType
 	}
-	topic, err := mod.routerCache.Lookup(uid, modName, typ)
+	topic, err := mod.routerCache.Lookup(modName)
 	if err != nil {
 		mod.Logger().Warn().
-			Int64("uid", uid).
 			Int("type", int(typ)).
 			String("module", modName).
 			Print("router not found")
