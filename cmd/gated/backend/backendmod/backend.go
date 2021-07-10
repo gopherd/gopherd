@@ -1,9 +1,11 @@
 package backendmod
 
 import (
+	"errors"
 	"net"
 	"path"
 	"strconv"
+	"sync"
 
 	"github.com/gopherd/doge/mq"
 	"github.com/gopherd/doge/proto"
@@ -17,6 +19,15 @@ import (
 	"github.com/gopherd/gopherd/cmd/gated/config"
 	"github.com/gopherd/gopherd/cmd/gated/frontend"
 	"github.com/gopherd/gopherd/proto/gatepb"
+)
+
+var errUnknownMessage = errors.New("backend: unknown message")
+var (
+	forwardPool = sync.Pool{
+		New: func() interface{} {
+			return new(gatepb.Forward)
+		},
+	}
 )
 
 // New returns a backend module
@@ -90,25 +101,26 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 		Int("read", n).
 		Int("type", int(m.Type())).
 		Print("received a message from mq")
+
 	switch ptc := m.(type) {
 	case *gatepb.RegisterRouter:
 		mod.routerCache.Add(ptc.Mod, ptc.Addr)
 	case *gatepb.UnregisterRouter:
 		mod.routerCache.Remove(ptc.Mod)
 	case *gatepb.Broadcast:
-		err = mod.broadcast(ptc)
+		if len(ptc.Uids) == 0 {
+			err = mod.service.Frontend().BroadcastAll(ptc.Content)
+		} else {
+			err = mod.service.Frontend().Broadcast(ptc.Uids, ptc.Content)
+		}
 	case *gatepb.Unicast:
-		err = mod.unicast(ptc)
+		err = mod.service.Frontend().Unicast(ptc.Uid, ptc.Content)
 	case *gatepb.Kickout:
-		err = mod.kickout(ptc)
+		err = mod.service.Frontend().Kickout(ptc.Uid, gatepb.KickoutReason(ptc.Reason))
 	default:
-		mod.Logger().Warn().
-			Int("size", len(msg)).
-			Int("type", int(m.Type())).
-			String("name", proto.Nameof(m)).
-			Print("received a unknown message from mq")
-		return
+		err = errUnknownMessage
 	}
+
 	if err != nil {
 		mod.Logger().Warn().
 			Int("type", int(m.Type())).
@@ -118,33 +130,18 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 	}
 }
 
-// broadcast handles Broadcast message
-func (mod *backendModule) broadcast(ptc *gatepb.Broadcast) error {
-	if len(ptc.Uids) == 0 {
-		return mod.service.Frontend().BroadcastAll(ptc.Content)
-	} else {
-		return mod.service.Frontend().Broadcast(ptc.Uids, ptc.Content)
-	}
-}
-
-// unicast handles Unicast message
-func (mod *backendModule) unicast(ptc *gatepb.Unicast) error {
-	return mod.service.Frontend().Unicast(ptc.Uid, ptc.Content)
-}
-
-// kickout handles Kickout message
-func (mod *backendModule) kickout(ptc *gatepb.Kickout) error {
-	return mod.service.Frontend().Kickout(ptc.Uid, gatepb.KickoutReason(ptc.Reason))
-}
-
 // Forward implements backend.Module Forward method
 func (mod *backendModule) Forward(uid int64, typ proto.Type, body []byte) error {
-	return mod.send(typ, &gatepb.Forward{
-		Gid:        int64(mod.service.ID()),
-		Uid:        uid,
-		MsgType:    int32(typ),
-		MsgContent: []byte(body),
-	})
+	m := forwardPool.Get().(*gatepb.Forward)
+	m.Reset()
+	m.Gid = int64(mod.service.ID())
+	m.Uid = uid
+	m.MsgType = int32(typ)
+	m.MsgContent = []byte(body)
+	if len(m.MsgContent) < (1 << 12) {
+		defer forwardPool.Put(m)
+	}
+	return mod.send(typ, m)
 }
 
 // Login implements backend.Module Login method
@@ -167,6 +164,8 @@ func (mod *backendModule) Logout(uid int64) error {
 	return mod.send(m.Type(), m)
 }
 
+// send message to mq.
+// typ maybe not equal to m.Type()
 func (mod *backendModule) send(typ proto.Type, m proto.Message) error {
 	modName := proto.Moduleof(typ)
 	if modName == "" {
@@ -183,13 +182,14 @@ func (mod *backendModule) send(typ proto.Type, m proto.Message) error {
 			Print("router not found")
 		return err
 	}
-	content, err := proto.Marshal(m)
-	if err != nil {
+	buf := proto.AllocBuffer()
+	defer proto.FreeBuffer(buf)
+	if err := buf.Marshal(m); err != nil {
 		mod.Logger().Warn().
 			String("topic", topic).
 			Int("type", int(typ)).
 			Print("marshal message error")
 		return err
 	}
-	return mod.service.MQ().Publish(topic, content)
+	return mod.service.MQ().Publish(topic, buf.Bytes())
 }
