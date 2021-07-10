@@ -9,6 +9,6 @@ import (
 type Module interface {
 	Busy() bool
 	Forward(uid int64, typ proto.Type, body proto.Body) error
-	Login(payload jwt.Payload, userdata []byte, replace bool) error
+	Login(payload jwt.Payload, replace bool) error
 	Logout(uid int64) error
 }

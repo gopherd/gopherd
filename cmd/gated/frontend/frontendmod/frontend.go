@@ -390,26 +390,20 @@ func (mod *frontendModule) login(s *session, req *gatepb.LoginReq) error {
 	}
 	mod.Logger().Debug().
 		Int64("sid", s.id).
-		Int64("uid", claims.Uid).
-		String("os", claims.Os).
-		String("ip", claims.IP).
-		String("location", claims.Loc).
-		Int("chan", claims.Chan).
+		Int64("uid", claims.Payload.ID).
+		String("ip", claims.Payload.IP).
 		Print("user logging")
 
 	// overrides ip
-	if claims.IP != "" {
-		s.ip = claims.IP
+	if claims.Payload.IP != "" {
+		s.ip = claims.Payload.IP
 	}
 
 	if !mod.sessions.recordIP(s.id, s.ip) {
 		mod.Logger().Warn().
 			Int64("sid", s.id).
-			Int64("uid", claims.Uid).
-			String("os", claims.Os).
-			String("ip", claims.IP).
-			String("location", claims.Loc).
-			Int("chan", claims.Chan).
+			Int64("uid", claims.Payload.ID).
+			String("ip", claims.Payload.IP).
 			Print("user login denied because of ip limited")
 		return errors.New("ip limited")
 	}
@@ -418,16 +412,16 @@ func (mod *frontendModule) login(s *session, req *gatepb.LoginReq) error {
 		token: claims.Payload,
 	})
 
-	if ok, err := mod.setUserLogged(claims.Uid, s.id, true); err != nil {
+	if ok, err := mod.setUserLogged(claims.Payload.ID, s.id, true); err != nil {
 		return err
 	} else if !ok {
 		mod.pendingSessions.Store(s.id, &pendingSession{
-			uid: claims.Uid,
+			uid: claims.Payload.ID,
 		})
 		s.setState(statePendingLogin)
-		return mod.service.Backend().Login(claims.Payload, req.Userdata, true)
+		return mod.service.Backend().Login(claims.Payload, true)
 	}
-	return mod.afterLogin(s, req.Userdata)
+	return mod.afterLogin(s)
 }
 
 func (mod *frontendModule) retryLogin(sid int64, ps *pendingSession, now int64) (deleted bool) {
@@ -459,7 +453,7 @@ func (mod *frontendModule) retryLogin(sid int64, ps *pendingSession, now int64) 
 		s.Close(nil)
 		return true
 	} else if ok {
-		mod.afterLogin(s, ps.userdata)
+		mod.afterLogin(s)
 		return true
 	}
 	if s.createdAt+int64(maxDurationForPendingSession/time.Millisecond) < now {
@@ -476,7 +470,7 @@ func (mod *frontendModule) retryLogin(sid int64, ps *pendingSession, now int64) 
 	return false
 }
 
-func (mod *frontendModule) afterLogin(s *session, userdata []byte) error {
+func (mod *frontendModule) afterLogin(s *session) error {
 	if !mod.sessions.mapping(s.getUid(), s.id) {
 		mod.Logger().Warn().
 			Int64("uid", s.getUid()).
@@ -485,7 +479,7 @@ func (mod *frontendModule) afterLogin(s *session, userdata []byte) error {
 		return errors.New("duplicated login")
 	}
 	s.setState(stateLogged)
-	return mod.service.Backend().Login(s.getUser().token, userdata, false)
+	return mod.service.Backend().Login(s.getUser().token, false)
 }
 
 func (mod *frontendModule) logout(s *session, req *gatepb.LogoutReq) error {

@@ -130,7 +130,7 @@ func (mod *backendModule) Forward(uid int64, typ proto.Type, body proto.Body) er
 }
 
 // Login implements backend.Module Login method
-func (mod *backendModule) Login(claims jwt.Payload, userdata []byte, replace bool) error {
+func (mod *backendModule) Login(claims jwt.Payload, replace bool) error {
 	// (TODO) handle login
 	return nil
 }

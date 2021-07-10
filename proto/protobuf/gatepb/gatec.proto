@@ -25,7 +25,6 @@ message Pong {
 // @Type(133)
 message LoginReq {
 	string token = 1;
-	bytes userdata = 2;
 }
 
 // @Type(134)

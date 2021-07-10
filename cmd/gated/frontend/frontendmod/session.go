@@ -184,7 +184,7 @@ func (s *session) getUser() user {
 
 func (s *session) setUser(user user) {
 	s.internal.user = user
-	atomic.StoreInt64(&s.internal.uid, user.token.Uid)
+	atomic.StoreInt64(&s.internal.uid, user.token.ID)
 }
 
 func (s *session) getLastKeepaliveTime() int64 {
@@ -200,9 +200,8 @@ func (s *session) trySetLastUpdateSidTime(ttl, now int64) bool {
 }
 
 type pendingSession struct {
-	uid      int64
-	meta     uint32
-	userdata []byte
+	uid  int64
+	meta uint32
 }
 
 const (

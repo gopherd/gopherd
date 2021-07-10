@@ -9,6 +9,7 @@ const (
 	UnicastType   = 151
 	BroadcastType = 152
 	KickoutType   = 153
+	UserLoginType = 154
 )
 
 func init() {
@@ -16,9 +17,11 @@ func init() {
 	registry.Register("gatepb", UnicastType, func() registry.Message { return new(Unicast) })
 	registry.Register("gatepb", BroadcastType, func() registry.Message { return new(Broadcast) })
 	registry.Register("gatepb", KickoutType, func() registry.Message { return new(Kickout) })
+	registry.Register("gatepb", UserLoginType, func() registry.Message { return new(UserLogin) })
 }
 
 func (*Request) Type() registry.Type   { return RequestType }
 func (*Unicast) Type() registry.Type   { return UnicastType }
 func (*Broadcast) Type() registry.Type { return BroadcastType }
 func (*Kickout) Type() registry.Type   { return KickoutType }
+func (*UserLogin) Type() registry.Type { return UserLoginType }
