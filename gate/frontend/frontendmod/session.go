@@ -2,6 +2,7 @@ package frontendmod
 
 import (
 	"net"
+	"path"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -53,7 +54,7 @@ type session struct {
 	ip        string
 	createdAt int64
 	handler   handler
-	logger    log.Prefix
+	logger    *log.ContextLogger
 
 	// private fields of the session
 	internal struct {
@@ -72,13 +73,13 @@ type session struct {
 	}
 }
 
-func newSession(prefix log.Prefix, id int64, ip string, conn net.Conn, handler handler) *session {
+func newSession(logger *log.ContextLogger, id int64, ip string, conn net.Conn, handler handler) *session {
 	s := &session{
 		id:        id,
 		ip:        ip,
 		createdAt: time.Now().UnixNano() / 1e6,
 		handler:   handler,
-		logger:    prefix.Prefix("sid/" + strconv.FormatInt(id, 10)),
+		logger:    log.Prefix(logger.Logger(), path.Join(logger.Prefix(), "sid", strconv.FormatInt(id, 10))),
 	}
 	s.internal.state = int32(stateCreated)
 	s.internal.session = netutil.NewSession(conn, s)

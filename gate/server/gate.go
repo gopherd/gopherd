@@ -8,11 +8,11 @@ import (
 	"github.com/gopherd/doge/erron"
 	"github.com/gopherd/doge/service"
 
-	"github.com/gopherd/gopherd/cmd/gated/backend"
-	"github.com/gopherd/gopherd/cmd/gated/backend/backendmod"
-	"github.com/gopherd/gopherd/cmd/gated/config"
-	"github.com/gopherd/gopherd/cmd/gated/frontend"
-	"github.com/gopherd/gopherd/cmd/gated/frontend/frontendmod"
+	"github.com/gopherd/gopherd/gate/backend"
+	"github.com/gopherd/gopherd/gate/backend/backendmod"
+	"github.com/gopherd/gopherd/gate/config"
+	"github.com/gopherd/gopherd/gate/frontend"
+	"github.com/gopherd/gopherd/gate/frontend/frontendmod"
 )
 
 type server struct {
@@ -66,7 +66,6 @@ func (s *server) Init() error {
 // Start overrides BaseService Start method
 func (s *server) Start() error {
 	s.BaseService.Start()
-
 	go s.run()
 	return nil
 }
@@ -75,8 +74,7 @@ func (s *server) Start() error {
 func (s *server) Shutdown() error {
 	close(s.quit)
 	<-s.wait
-	s.BaseService.Shutdown()
-	return nil
+	return s.BaseService.Shutdown()
 }
 
 func (s *server) Busy() bool {

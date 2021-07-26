@@ -26,9 +26,9 @@ import (
 	"github.com/gopherd/doge/time/timer"
 	"github.com/gopherd/jwt"
 
-	"github.com/gopherd/gopherd/cmd/gated/backend"
-	"github.com/gopherd/gopherd/cmd/gated/config"
-	"github.com/gopherd/gopherd/cmd/gated/frontend"
+	"github.com/gopherd/gopherd/gate/backend"
+	"github.com/gopherd/gopherd/gate/config"
+	"github.com/gopherd/gopherd/gate/frontend"
 	"github.com/gopherd/gopherd/proto/gatepb"
 )
 

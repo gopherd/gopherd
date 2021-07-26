@@ -8,8 +8,8 @@ import (
 	_ "github.com/gopherd/redis/mq"
 	_ "github.com/gopherd/zmq"
 
-	"github.com/gopherd/gopherd/gate/config"
-	"github.com/gopherd/gopherd/gate/server"
+	"github.com/gopherd/gopherd/auth/config"
+	"github.com/gopherd/gopherd/auth/server"
 )
 
 func main() {

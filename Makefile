@@ -21,11 +21,15 @@ endef
 all: autogen cmd
 
 .PHONY: autogen
-autogen: proto
+autogen: proto auth/api
 
 .PHONY: proto
 proto:
 	$(call build_protobuf,gatepb)
+
+.PHONY: auth/api
+auth/api:
+	midc -Ogo=auth/ -Tgo=mid/templates/auth/ mid/auth.mid
 
 .PHONY: lint
 lint:
@@ -34,8 +38,12 @@ lint:
 	@loglint ./...
 
 .PHONY: cmd
-cmd: lint gated
+cmd: lint gated authd
 
 .PHONY: gated
 gated:
 	$(call build_target,gated)
+
+.PHONY: authd
+authd:
+	$(call build_target,authd)

@@ -1,0 +1,57 @@
+package api;
+
+// Generic error response for all api:
+//
+//	protocol Error {
+//		int error;
+//		string description;
+//	}
+
+// Authorize
+protocol AuthorizeRequest {
+	int channel; `required:"true"`
+	string os;
+	int version;
+
+	// Account type: token,mobile,device,facebook,google,wechat,qq, ...
+	string type; `required:"true"`
+	string account; `required:"account"`
+	string secret;
+	string device;
+
+	string userdata;
+	string source;
+}
+
+protocol AuthorizeResponse {
+	string access_token;
+	int64 access_token_expired_at;
+	string refresh_token;
+	int64 refresh_token_expired_at;
+	int channel;
+	string open_id;
+	map<string, string> data;
+}
+
+// Link account
+protocol LinkRequest {
+	string type; `required:"true"`
+	string account;
+	string secret;
+	string userdata;
+}
+
+protocol LinkResponse {
+	string open_id;
+	string userdata;
+}
+
+// SMS code
+protocol SmsCodeRequest {
+	int channel; `required:"true"`
+	string mobile; `required:"true"`
+}
+
+protocol SmsCodeResponse {
+	int ttl; // seconds
+}

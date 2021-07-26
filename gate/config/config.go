@@ -1,14 +1,8 @@
 package config
 
 import (
-	"bytes"
-	_ "embed"
-
 	"github.com/gopherd/doge/config"
 )
-
-//go:embed gated.conf
-var defaultConfigContent []byte
 
 // Config represents config of gated service
 type Config struct {
@@ -43,18 +37,5 @@ type Config struct {
 
 // Default implements config.Configurator Default method
 func (*Config) Default() config.Configurator {
-	return New()
-}
-
-func New() *Config {
-	cfg := new(Config)
-	if err := cfg.Read(cfg, bytes.NewReader(defaultConfigContent)); err != nil {
-		panic(err)
-	}
-	return cfg
-}
-
-func init() {
-	// verify default config
-	New()
+	return new(Config)
 }
