@@ -2,9 +2,9 @@ package server
 
 import (
 	"context"
-	"errors"
 	"net"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -12,12 +12,13 @@ import (
 	"github.com/gopherd/doge/erron"
 	"github.com/gopherd/doge/net/httputil"
 	"github.com/gopherd/doge/service"
+	"github.com/gopherd/jwt"
+	"github.com/gopherd/log"
+
 	"github.com/gopherd/gopherd/auth"
 	"github.com/gopherd/gopherd/auth/config"
 	"github.com/gopherd/gopherd/auth/handler"
 	"github.com/gopherd/gopherd/auth/provider"
-	"github.com/gopherd/jwt"
-	"github.com/gopherd/log"
 )
 
 type server struct {
@@ -32,6 +33,9 @@ type server struct {
 	}
 	signer *jwt.Signer
 
+	providersMu sync.RWMutex
+	providers   map[string]provider.Provider
+
 	quit, wait chan struct{}
 }
 
@@ -42,8 +46,9 @@ func New(cfg *config.Config) service.Service {
 		prefix = "authd"
 	}
 	s := &server{
-		quit: make(chan struct{}),
-		wait: make(chan struct{}),
+		providers: make(map[string]provider.Provider),
+		quit:      make(chan struct{}),
+		wait:      make(chan struct{}),
 	}
 	s.BaseService = service.NewBaseService(s, cfg)
 	s.internal.config = cfg
@@ -152,7 +157,37 @@ func (s *server) Logger() *log.Logger {
 }
 
 func (s *server) Provider(name string) (provider.Provider, error) {
-	return nil, errors.New("TODO")
+	if p, ok := s.getProvider(name); ok {
+		return p, nil
+	}
+	cfg := s.Config()
+	if cfg.Proviers == nil {
+		return nil, provider.ErrProviderNotFound
+	}
+	var source string
+	if s, ok := cfg.Proviers[name]; !ok {
+		return nil, provider.ErrProviderNotFound
+	} else {
+		source = s
+	}
+	p, err := provider.Open(name, source)
+	if err != nil {
+		return nil, err
+	}
+	s.providersMu.Lock()
+	defer s.providersMu.Unlock()
+	if old, ok := s.providers[name]; ok {
+		return old, nil
+	}
+	s.providers[name] = p
+	return p, nil
+}
+
+func (s *server) getProvider(name string) (provider.Provider, bool) {
+	s.providersMu.RLock()
+	defer s.providersMu.RUnlock()
+	p, ok := s.providers[name]
+	return p, ok
 }
 
 func (s *server) Response(w http.ResponseWriter, r *http.Request, data interface{}) error {
@@ -168,7 +203,7 @@ func (s *server) QueryLocationByIP(ip string) string {
 }
 
 func (s *server) GenerateSMSCode(channel int, ip, mobile string) (time.Duration, error) {
-	return 0, errors.New("TODO")
+	panic("TODO")
 }
 
 func (s *server) AccountManager() auth.AccountManager {

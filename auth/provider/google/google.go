@@ -1,10 +1,10 @@
 package google
 
 import (
-	"strings"
+	"context"
 
-	googleAuthIDTokenVerifier "github.com/futurenda/google-auth-id-token-verifier"
 	"github.com/gopherd/log"
+	"google.golang.org/api/idtoken"
 
 	"github.com/gopherd/gopherd/auth/provider"
 )
@@ -15,22 +15,19 @@ func init() {
 	provider.Register(name, open)
 }
 
-// source: <clientId>[,otherClientIds...]
+// source: <audience>
 func open(source string) (provider.Provider, error) {
 	return &googleClient{
-		clientIds: strings.Split(source, ","),
+		audience: source,
 	}, nil
 }
 
 type googleClient struct {
-	clientIds []string
+	audience string
 }
 
-func (c *googleClient) Name() string { return name }
-
 func (c *googleClient) Authorize(accessToken, _ string) (*provider.UserInfo, error) {
-	v := googleAuthIDTokenVerifier.Verifier{}
-	err := v.VerifyIDToken(accessToken, c.clientIds)
+	payload, err := idtoken.Validate(context.TODO(), accessToken, c.audience)
 	if err != nil {
 		log.Warn().
 			String("provider", name).
@@ -38,17 +35,18 @@ func (c *googleClient) Authorize(accessToken, _ string) (*provider.UserInfo, err
 			Print("verify access token error")
 		return nil, err
 	}
-	claimSet, err := googleAuthIDTokenVerifier.Decode(accessToken)
-	if err != nil {
-		log.Warn().
-			String("provider", name).
-			Error("error", err).
-			Print("decode access token error")
-		return nil, err
-	}
 	return &provider.UserInfo{
-		Key:    claimSet.Sub,
-		Name:   claimSet.Name,
-		Avatar: claimSet.Picture,
+		Key:    getStringFromClaims(payload.Claims, "sub"),
+		Name:   getStringFromClaims(payload.Claims, "name"),
+		Avatar: getStringFromClaims(payload.Claims, "picture"),
 	}, nil
+}
+
+func getStringFromClaims(claims map[string]interface{}, key string) string {
+	if v, ok := claims[key]; ok && v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
 }
