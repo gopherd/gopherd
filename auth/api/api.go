@@ -16,17 +16,25 @@ var (
 	_ url.Values
 )
 
+const (
+	Unknown = 0
+	Male    = 1
+	Female  = 2
+)
+
 // Authorize
 type AuthorizeRequest struct {
-	Channel  int    `json:"channel"`
-	Os       string `json:"os"`
-	Version  int    `json:"version"`
-	Type     string `json:"type"`
-	Account  string `json:"account"`
-	Secret   string `json:"secret"`
-	Device   string `json:"device"`
-	Userdata string `json:"userdata"`
-	Source   string `json:"source"`
+	Channel int    `json:"channel"`
+	Type    string `json:"type"`
+	Account string `json:"account"`
+	Secret  string `json:"secret"`
+	Device  string `json:"device"`
+	Os      string `json:"os"`
+	Model   string `json:"model"`
+	Source  string `json:"source"`
+	Name    string `json:"name"`
+	Avatar  string `json:"avatar"`
+	Gender  int    `json:"gender"`
 }
 
 func (argv *AuthorizeRequest) form(r *http.Request) url.Values {
@@ -39,71 +47,47 @@ func (argv *AuthorizeRequest) form(r *http.Request) url.Values {
 
 func (argv *AuthorizeRequest) Parse(r *http.Request) error {
 	var err error
-
-	argv.Channel, err = query.RequiredInt(argv.form(r), "channel")
-	if err != nil {
+	if argv.Channel, err = query.RequiredInt(argv.form(r), "channel"); err != nil {
 		return err
 	}
-
-	argv.Os = query.String(argv.form(r), "os", "")
-	if err != nil {
+	if argv.Type, err = query.RequiredString(argv.form(r), "type"); err != nil {
 		return err
 	}
-
-	argv.Version, err = query.Int(argv.form(r), "version", 0)
-	if err != nil {
+	if argv.Account, err = query.RequiredString(argv.form(r), "account"); err != nil {
 		return err
 	}
-
-	argv.Type, err = query.RequiredString(argv.form(r), "type")
-	if err != nil {
-		return err
-	}
-
-	argv.Account = query.String(argv.form(r), "account", "")
-	if err != nil {
-		return err
-	}
-
 	argv.Secret = query.String(argv.form(r), "secret", "")
-	if err != nil {
-		return err
-	}
-
 	argv.Device = query.String(argv.form(r), "device", "")
-	if err != nil {
-		return err
-	}
-
-	argv.Userdata = query.String(argv.form(r), "userdata", "")
-	if err != nil {
-		return err
-	}
-
+	argv.Os = query.String(argv.form(r), "os", "")
+	argv.Model = query.String(argv.form(r), "model", "")
 	argv.Source = query.String(argv.form(r), "source", "")
-	if err != nil {
+	argv.Name = query.String(argv.form(r), "name", "")
+	argv.Avatar = query.String(argv.form(r), "avatar", "")
+	if argv.Gender, err = query.Int(argv.form(r), "gender", 0); err != nil {
 		return err
 	}
-
 	return err
 }
 
 type AuthorizeResponse struct {
+	Channel               int               `json:"channel"`
 	AccessToken           string            `json:"access_token"`
 	AccessTokenExpiredAt  int64             `json:"access_token_expired_at"`
 	RefreshToken          string            `json:"refresh_token"`
 	RefreshTokenExpiredAt int64             `json:"refresh_token_expired_at"`
-	Channel               int               `json:"channel"`
 	OpenId                string            `json:"open_id"`
-	Data                  map[string]string `json:"data"`
+	Providers             map[string]string `json:"providers"`
 }
 
 // Link account
 type LinkRequest struct {
-	Type     string `json:"type"`
-	Account  string `json:"account"`
-	Secret   string `json:"secret"`
-	Userdata string `json:"userdata"`
+	Type    string `json:"type"`
+	Token   string `json:"token"`
+	Account string `json:"account"`
+	Secret  string `json:"secret"`
+	Name    string `json:"name"`
+	Avatar  string `json:"avatar"`
+	Gender  int    `json:"gender"`
 }
 
 func (argv *LinkRequest) form(r *http.Request) url.Values {
@@ -116,33 +100,26 @@ func (argv *LinkRequest) form(r *http.Request) url.Values {
 
 func (argv *LinkRequest) Parse(r *http.Request) error {
 	var err error
-
-	argv.Type, err = query.RequiredString(argv.form(r), "type")
-	if err != nil {
+	if argv.Type, err = query.RequiredString(argv.form(r), "type"); err != nil {
 		return err
 	}
-
-	argv.Account = query.String(argv.form(r), "account", "")
-	if err != nil {
+	if argv.Token, err = query.RequiredString(argv.form(r), "token"); err != nil {
 		return err
 	}
-
+	if argv.Account, err = query.RequiredString(argv.form(r), "account"); err != nil {
+		return err
+	}
 	argv.Secret = query.String(argv.form(r), "secret", "")
-	if err != nil {
+	argv.Name = query.String(argv.form(r), "name", "")
+	argv.Avatar = query.String(argv.form(r), "avatar", "")
+	if argv.Gender, err = query.Int(argv.form(r), "gender", 0); err != nil {
 		return err
 	}
-
-	argv.Userdata = query.String(argv.form(r), "userdata", "")
-	if err != nil {
-		return err
-	}
-
 	return err
 }
 
 type LinkResponse struct {
-	OpenId   string `json:"open_id"`
-	Userdata string `json:"userdata"`
+	OpenId string `json:"open_id"`
 }
 
 // SMS code
@@ -161,21 +138,15 @@ func (argv *SmsCodeRequest) form(r *http.Request) url.Values {
 
 func (argv *SmsCodeRequest) Parse(r *http.Request) error {
 	var err error
-
-	argv.Channel, err = query.RequiredInt(argv.form(r), "channel")
-	if err != nil {
+	if argv.Channel, err = query.RequiredInt(argv.form(r), "channel"); err != nil {
 		return err
 	}
-
-	argv.Mobile, err = query.RequiredString(argv.form(r), "mobile")
-	if err != nil {
+	if argv.Mobile, err = query.RequiredString(argv.form(r), "mobile"); err != nil {
 		return err
 	}
-
 	return err
 }
 
 type SmsCodeResponse struct {
-	Ttl int `json:"ttl"` // seconds
-
+	Seconds int `json:"seconds"`
 }

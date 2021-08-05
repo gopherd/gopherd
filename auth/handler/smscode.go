@@ -32,7 +32,7 @@ func SMSCode(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		service.Response(w, r, erron.AsErrno(err))
 	} else {
 		service.Response(w, r, api.SmsCodeResponse{
-			Ttl: int(ttl / time.Second),
+			Seconds: int(ttl / time.Second),
 		})
 	}
 }

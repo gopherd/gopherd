@@ -65,7 +65,7 @@ func (s *server) Init() error {
 	if err != nil {
 		return erron.Throw(err)
 	}
-	cfg := s.internal.config
+	cfg := s.Config()
 	s.signer, err = jwt.NewSigner(cfg.JWT.Filename, cfg.JWT.KeyId)
 	if err != nil {
 		return erron.Throwf("new signer from file %q error %w", cfg.JWT.Filename, err)
@@ -116,7 +116,7 @@ func (s *server) shutdownHTTPServer() {
 }
 
 func (s *server) Busy() bool {
-	return s.BaseService.Busy()
+	return s.BaseService.Busy() || (s.http.server != nil && s.http.server.NumHandling() > 0)
 }
 
 // run runs service's main loop

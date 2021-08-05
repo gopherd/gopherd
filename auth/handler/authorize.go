@@ -11,6 +11,7 @@ import (
 
 	"github.com/gopherd/gopherd/auth"
 	"github.com/gopherd/gopherd/auth/api"
+	"github.com/gopherd/gopherd/auth/provider"
 )
 
 func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
@@ -46,33 +47,87 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		service.Response(w, r, resp)
 		return
 	}
-	provider, err := service.Provider(req.Type)
+	var user *provider.UserInfo
+	if req.Type != provider.Device {
+		// lookup provider
+		p, err := service.Provider(req.Type)
+		if err != nil {
+			service.Logger().Error().
+				String("api", tag).
+				String("provider", req.Type).
+				Print("provider not found")
+			service.Response(w, r, erron.AsErrno(err))
+			return
+		}
+		// authorize for provider
+		user, err := p.Authorize(req.Account, req.Secret)
+		if err != nil {
+			service.Logger().Warn().
+				String("api", tag).
+				String("provider", req.Type).
+				Print("provider.authorize error")
+			service.Response(w, r, erron.AsErrno(err))
+			return
+		}
+		if req.Device == "" {
+			if user.OpenId == "" {
+				service.Logger().Warn().
+					String("api", tag).
+					String("provider", req.Type).
+					Print("openId required")
+				service.Response(w, r, erron.Errnof(api.BadAuthorization, "openId not found"))
+				return
+			}
+			req.Device = joinDeviceByOpenId(req.Type, user.OpenId)
+		}
+		if user.Key == "" {
+			req.Account = req.Device
+		}
+	}
+	var key = req.Account
+	if user != nil && user.Key != "" {
+		key = user.Key
+	}
+	// load or create account
+	account, isNew, err := service.AccountManager().LoadOrCreate(req.Type, key, req.Device)
 	if err != nil {
 		service.Logger().Error().
 			String("api", tag).
 			String("provider", req.Type).
-			Print("provider not found")
+			String("key", key).
+			String("device", req.Device).
+			Error("error", err).
+			Print("load or create account error")
 		service.Response(w, r, erron.AsErrno(err))
 		return
 	}
-	account, isNew, err := provider.Authorize(ip, req)
-	if err != nil {
-		service.Logger().Error().
-			String("api", tag).
-			String("provider", req.Type).
-			Print("provider.authorize error")
-		service.Response(w, r, erron.AsErrno(err))
-		return
+	if user != nil {
+		if user.Name != "" {
+			account.SetName(user.Name)
+		}
+		if user.Avatar != "" {
+			account.SetAvatar(user.Avatar)
+		}
+		if user.Location != "" {
+			account.SetLocation(user.Location)
+		}
+	} else {
+		if location := service.QueryLocationByIP(ip); location != "" {
+			account.SetLocation(location)
+		}
 	}
-	claims, err := authorizedSuccess(service, account, ip, req, isNew)
+	// authorized success
+	claims, err := authorized(service, ip, req, account, isNew)
 	if err != nil {
 		service.Response(w, r, erron.Errnof(api.InternalServerError, "internal server error"))
 		return
 	}
 
+	// sign access_token and refresh_token
 	options := service.Options()
 	claims.Issuer = options.JWT.Issuer
-	resp.OpenId = account.OpenId
+	claims.IssuedAt = time.Now().Unix()
+	claims.ExpiresAt = claims.IssuedAt + int64(options.AccessTokenTTL)
 	resp.AccessToken, err = service.Signer().Sign(claims)
 	if err != nil {
 		service.Logger().Error().
@@ -102,34 +157,36 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	service.Response(w, r, resp)
 }
 
-func authorizedSuccess(service auth.Service, account *auth.Account, ip string, req *api.AuthorizeRequest, isNew bool) (*jwt.Claims, error) {
+func joinDeviceByOpenId(provider, openId string) string {
+	return provider + ":" + openId + "@" + cryptoutil.MD5(openId)
+}
+
+func authorized(service auth.Service, ip string, req *api.AuthorizeRequest, account auth.Account, isNew bool) (*jwt.Claims, error) {
 	// 玩家被冻结账号
-	if account.Banned {
+	if banned, reason := account.GetBanned(); banned {
 		service.Logger().Info().
-			Int64("uid", account.Uid).
-			String("banned_reason", account.BannedReason).
+			Int64("uid", account.GetID()).
+			String("banned_reason", reason).
 			Print("account banned")
 		return nil, erron.Errnof(api.Banned, "banned")
 	}
-	options := service.Options()
 
 	var claims = new(jwt.Claims)
-	claims.IssuedAt = time.Now().Unix()
-	claims.ExpiresAt = claims.IssuedAt + int64(options.AccessTokenTTL)
 	claims.Payload.Salt = cryptoutil.GenerateSalt(16)
-	claims.Payload.ID = account.Uid
+	claims.Payload.ID = account.GetID()
 	claims.Payload.IP = ip
 
 	// (TODO): set claims
 
 	service.Logger().Info().
-		Int64("uid", account.Uid).
+		Int64("uid", account.GetID()).
 		String("ip", ip).
 		Print("authorized successfully")
 
-	if !isNew {
-		account.LastLoginAt = time.Now()
-		account.LastLoginIP = ip
+	now := time.Now()
+	if isNew {
+		account.SetRegister(now, ip)
 	}
-	return claims, nil
+	account.SetLastLogin(now, ip)
+	return claims, service.AccountManager().Store(req.Type, account)
 }

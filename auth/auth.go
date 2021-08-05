@@ -1,23 +1,35 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
-	"github.com/gopherd/gopherd/auth/api"
+	"github.com/gopherd/gopherd/auth/provider"
 	"github.com/gopherd/jwt"
 	"github.com/gopherd/log"
 )
 
-type Account struct {
-	Uid          int64     `json:"uid"`
-	OpenId       string    `json:"open_id"`
-	Banned       bool      `json:"banned"`
-	BannedReason string    `json:"banned_reason"`
-	LastLoginAt  time.Time `json:"last_login_at"`
-	LastLoginIP  string    `json:"last_login_ip"`
+type Account interface {
+	GetID() int64
+	SetID(id int64)
+	GetDeviceID() string
+	SetDeviceID(string)
+	GetBanned() (bool, string)
+	SetBanned(bool, string)
+	GetRegister() (time.Time, string)
+	SetRegister(time.Time, string)
+	GetLastLogin() (time.Time, string)
+	SetLastLogin(time.Time, string)
+	GetName() string
+	SetName(string)
+	GetAvatar() string
+	SetAvatar(string)
+	GetGender() int
+	SetGender(int)
+	GetLocation() string
+	SetLocation(string)
+	GetProvider(string) string
+	SetProvider(provider, key string)
 }
 
 type Options struct {
@@ -35,39 +47,18 @@ type Handler func(Service, http.ResponseWriter, *http.Request)
 type Service interface {
 	Options() Options
 	Logger() *log.Logger
-	Provider(name string) (Provider, error)
-	Response(w http.ResponseWriter, r *http.Request, v interface{}) error
 	Signer() *jwt.Signer
+	Provider(name string) (provider.Provider, error)
+	Response(w http.ResponseWriter, r *http.Request, v interface{}) error
 	GenerateSMSCode(channel int, ip, mobile string) (time.Duration, error)
+	AccountManager() AccountManager
+	QueryLocationByIP(ip string) string
 }
 
-type Provider interface {
-	Authorize(ip string, req *api.AuthorizeRequest) (account *Account, isNew bool, err error)
-	Link(ip string, req *api.LinkRequest, claims *jwt.Claims) (account *Account, err error)
-}
-
-type Driver interface {
-	Open(source string) (Provider, error)
-}
-
-var (
-	driversMu sync.RWMutex
-	drivers   = make(map[string]Driver)
-)
-
-func Register(name string, driver Driver) {
-	driversMu.Lock()
-	defer driversMu.Unlock()
-	if _, dup := drivers[name]; dup {
-		panic("auth: Register " + name + " called twice")
-	}
-	drivers[name] = driver
-}
-
-func Open(name string, source string) (Provider, error) {
-	driver, ok := drivers[name]
-	if !ok {
-		return nil, fmt.Errorf("auth: provider %q not found, forgot import?", name)
-	}
-	return driver.Open(source)
+type AccountManager interface {
+	Exist(provider, key string) (bool, error)
+	Store(provider string, account Account) error
+	Load(provider, key string) (Account, error)
+	LoadOrCreate(provider, key, device string) (Account, bool, error)
+	Get(uid int64) (Account, bool, error)
 }

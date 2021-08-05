@@ -90,7 +90,7 @@ func (argv *{{$type}}) form(r *http.Request) url.Values {
 
 func (argv *{{$type}}) Parse(r *http.Request) error {
 	var err error
-	{{range $field := $bean.Fields}}
+	{{- range $field := $bean.Fields}}
 		{{- $key := newString}}
 		{{- $tmp := newString}}
 		{{- $dft := newString}}
@@ -103,22 +103,25 @@ func (argv *{{$type}}) Parse(r *http.Request) error {
 		{{- $dft.Set ($field.GetTag "dft")}}
 		{{- $fieldType := context.BuildType $field.Type -}}
 		{{- if eq "true" ($field.GetTag "required")}}
-			argv.{{upperCamel $field.Name}}, err = query.Required{{title $fieldType}}(argv.form(r), "{{$key.Get}}")
+			if argv.{{upperCamel $field.Name}}, err = query.Required{{title $fieldType}}(argv.form(r), "{{$key.Get}}"); err != nil {
+				return err
+			}
 		{{- else}}
 			{{- if eq "string" $fieldType}}
 				argv.{{upperCamel $field.Name}} = query.{{title $fieldType}}(argv.form(r), "{{$key.Get}}", "{{$dft.Get}}")
 			{{- else if eq "bool" $fieldType}}
 				{{- if eq "" $dft.Get}}{{$dft.Set "false"}}{{- end}}
-				argv.{{upperCamel $field.Name}}, err = query.{{title $fieldType}}(argv.form(r), "{{$key.Get}}", {{$dft.Get}})
+				if argv.{{upperCamel $field.Name}}, err = query.{{title $fieldType}}(argv.form(r), "{{$key.Get}}", {{$dft.Get}}); err != nil {
+					return err
+				}
 			{{- else}}
 				{{- if eq "" $dft.Get}}{{$dft.Set "0"}}{{- end}}
-				argv.{{upperCamel $field.Name}}, err = query.{{title $fieldType}}(argv.form(r), "{{$key.Get}}", {{$dft.Get}})
+				if argv.{{upperCamel $field.Name}}, err = query.{{title $fieldType}}(argv.form(r), "{{$key.Get}}", {{$dft.Get}}); err != nil {
+					return err
+				}
 			{{- end}}
 		{{- end}}
-		if err != nil {
-			return err
-		}
-	{{end}}
+	{{- end}}
 	return err
 }
 {{end}}

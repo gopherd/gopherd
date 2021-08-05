@@ -7,43 +7,53 @@ package api;
 //		string description;
 //	}
 
+const (
+	Unknown = 0;
+	Male = 1;
+	Female = 2;
+)
+
 // Authorize
 protocol AuthorizeRequest {
 	int channel; `required:"true"`
-	string os;
-	int version;
-
-	// Account type: token,mobile,device,facebook,google,wechat,qq, ...
 	string type; `required:"true"`
-	string account; `required:"account"`
+	string account; `required:"true"`
 	string secret;
 	string device;
 
-	string userdata;
+	string os;
+	string model;
 	string source;
+
+	string name;
+	string avatar;
+	int gender;
 }
 
 protocol AuthorizeResponse {
+	int channel;
 	string access_token;
 	int64 access_token_expired_at;
 	string refresh_token;
 	int64 refresh_token_expired_at;
-	int channel;
 	string open_id;
-	map<string, string> data;
+	map<string, string> providers;
 }
 
 // Link account
 protocol LinkRequest {
 	string type; `required:"true"`
-	string account;
+	string token; `required:"true"`
+	string account; `required:"true"`
 	string secret;
-	string userdata;
+
+	string name;
+	string avatar;
+	int gender;
 }
 
 protocol LinkResponse {
 	string open_id;
-	string userdata;
 }
 
 // SMS code
@@ -53,5 +63,5 @@ protocol SmsCodeRequest {
 }
 
 protocol SmsCodeResponse {
-	int ttl; // seconds
+	int seconds;
 }
