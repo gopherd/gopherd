@@ -43,11 +43,11 @@ type wxgameClient struct {
 }
 
 type Code2SessionResponse struct {
-	OpenId     string `json:"openid"`      // 用户唯一标识（适用于游客登陆，总是能取到）
-	UnionId    string `json:"unionid"`     // 用户跨app唯一标志（可能取不到）
-	SessionKey string `json:"session_key"` // 会话密钥
-	Errcode    int    `json:"errcode"`     // 错误码
-	Errmsg     string `json:"errmsg"`      // 错误信息
+	OpenId     string `json:"openid"`
+	UnionId    string `json:"unionid"`
+	SessionKey string `json:"session_key"`
+	Errcode    int    `json:"errcode"`
+	Errmsg     string `json:"errmsg"`
 }
 
 func (c *wxgameClient) Authorize(code, userdata string) (*provider.UserInfo, error) {
@@ -83,16 +83,6 @@ func (c *wxgameClient) Authorize(code, userdata string) (*provider.UserInfo, err
 	return res, nil
 }
 
-// errcode 的合法值
-//
-// 值	说明
-// -1	系统繁忙，此时请开发者稍候再试
-// 0	请求成功
-// 40029	code 无效
-// 45011	频率限制，每个用户每分钟100次
-//
-// @param {string} js_code 前端调用 wx.login 获取到的临时认证码
-// @param {string} grant_type 授权方式，固定值 authorization_code
 func (c *wxgameClient) code2Session(code string) (*Code2SessionResponse, error) {
 	url := fmt.Sprintf("%s?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", code2SessionURL, c.appId, c.appSecret, code)
 	respObj := new(Code2SessionResponse)
@@ -139,7 +129,6 @@ type userInfo struct {
 }
 
 func (c *wxgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedStr string) *userInfo {
-	// 校验签名
 	sig2 := cryptoutil.Sha1(raw + sessionKey)
 	if sig2 != sig {
 		log.Warn().
@@ -148,7 +137,6 @@ func (c *wxgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedSt
 			Print("signature mismatched")
 		return nil
 	}
-	// 取得加密数据
 	encrypted, err := base64.StdEncoding.DecodeString(encryptedStr)
 	if err != nil {
 		log.Warn().
@@ -156,7 +144,6 @@ func (c *wxgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedSt
 			Print("invalid encrypted data")
 		return nil
 	}
-	// 取得aesKey
 	aesKey, err := base64.StdEncoding.DecodeString(sessionKey)
 	if err != nil {
 		log.Warn().
@@ -165,7 +152,6 @@ func (c *wxgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedSt
 			Print("invalid session key")
 		return nil
 	}
-	// 取得 IV
 	iv, err := base64.StdEncoding.DecodeString(ivStr)
 	if err != nil {
 		log.Warn().
@@ -174,7 +160,6 @@ func (c *wxgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedSt
 			Print("invalid iv")
 		return nil
 	}
-	// 解密数据
 	block, err := aes.NewCipher(aesKey)
 	if err != nil {
 		log.Warn().

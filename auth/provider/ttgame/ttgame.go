@@ -86,25 +86,13 @@ func (c *ttgameClient) Authorize(code, userdata string) (*provider.UserInfo, err
 }
 
 type code2SessionResponse struct {
-	Errcode int    `json:"errcode"` // 错误码
-	Errmsg  string `json:"errmsg"`  // 错误信息
-
-	SessionKey      string `json:"session_key"`      // 会话密钥
-	OpenId          string `json:"openid"`           // 用户唯一标识
-	AnonymousOpenId string `json:"anonymous_openid"` // 用户唯一标识（适用于游客登陆，总是能取到）
+	Errcode         int    `json:"errcode"`
+	Errmsg          string `json:"errmsg"`
+	SessionKey      string `json:"session_key"`
+	OpenId          string `json:"openid"`
+	AnonymousOpenId string `json:"anonymous_openid"`
 }
 
-// 错误号	描述
-// 0	请求成功
-// -1	系统错误
-// 40015	appid错误
-// 40017	secret错误
-// 40018	code错误
-// 40019	acode错误
-// 其它	参数为空
-//
-// @param {string} acode 前端调用 tt.login 获取到的匿名临时认证码
-// @param {string} [code=""] 前端调用 tt.login 获取到的临时认证码
 func (c *ttgameClient) code2Session(acode, code string) (*code2SessionResponse, error) {
 	var url string
 	if code != "" {
@@ -156,7 +144,6 @@ type userInfo struct {
 }
 
 func (c *ttgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedStr string) *userInfo {
-	// 校验签名
 	sig2 := cryptoutil.Sha1(raw + sessionKey)
 	if sig2 != sig {
 		log.Warn().
@@ -165,7 +152,6 @@ func (c *ttgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedSt
 			Print("signature mismatched")
 		return nil
 	}
-	// 取得加密数据
 	encrypted, err := base64.StdEncoding.DecodeString(encryptedStr)
 	if err != nil {
 		log.Warn().
@@ -173,7 +159,6 @@ func (c *ttgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedSt
 			Print("invalid encrypted data")
 		return nil
 	}
-	// 取得aesKey
 	aesKey, err := base64.StdEncoding.DecodeString(sessionKey)
 	if err != nil {
 		log.Warn().
@@ -182,7 +167,6 @@ func (c *ttgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedSt
 			Print("invalid session key")
 		return nil
 	}
-	// 取得 IV
 	iv, err := base64.StdEncoding.DecodeString(ivStr)
 	if err != nil {
 		log.Warn().
@@ -191,7 +175,6 @@ func (c *ttgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedSt
 			Print("invalid iv")
 		return nil
 	}
-	// 解密数据
 	block, err := aes.NewCipher(aesKey)
 	if err != nil {
 		log.Warn().

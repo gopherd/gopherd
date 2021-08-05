@@ -18,7 +18,7 @@ const (
 )
 
 const (
-	errorCodeOk = 0
+	codeOk = 0
 )
 
 func init() {
@@ -83,7 +83,7 @@ func (c *wechatClient) request(url string, respObj response) error {
 			Description: err.Error(),
 		}
 	}
-	if respObj.ErrorCode() != errorCodeOk {
+	if respObj.ErrorCode() != codeOk {
 		return provider.Error{
 			Name:        name,
 			Code:        strconv.Itoa(respObj.ErrorCode()),
