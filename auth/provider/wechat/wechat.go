@@ -41,6 +41,31 @@ type wechatClient struct {
 	appSecret string
 }
 
+func (c *wechatClient) Authorize(accessToken, openId string) (*provider.UserInfo, error) {
+	url := userinfoURL + fmt.Sprintf("?access_token=%s&openid=%s", accessToken, openId)
+	obj := userInfoResponse{}
+	if err := c.request(url, &obj); err != nil {
+		return nil, err
+	}
+	var gender provider.Gender
+	switch obj.Sex {
+	case 1:
+		gender = provider.Male
+	case 2:
+		gender = provider.Female
+	default:
+		gender = provider.Unknown
+	}
+	return &provider.UserInfo{
+		Key:      obj.UnionId,
+		Name:     obj.Nickname,
+		Avatar:   obj.HeadImgURL,
+		Gender:   gender,
+		Location: provider.Location(obj.Country, obj.Province, obj.City),
+		OpenId:   obj.OpenId,
+	}, nil
+}
+
 type response interface {
 	ErrorCode() int
 	ErrorMsg() string
@@ -121,29 +146,4 @@ type userInfoResponse struct {
 	Privilege  []string `json:"privilege"`
 	UnionId    string   `json:"unionid"`
 	OpenId     string   `json:"openid"`
-}
-
-func (c *wechatClient) Authorize(accessToken, openId string) (*provider.UserInfo, error) {
-	url := userinfoURL + fmt.Sprintf("?access_token=%s&openid=%s", accessToken, openId)
-	obj := userInfoResponse{}
-	if err := c.request(url, &obj); err != nil {
-		return nil, err
-	}
-	var gender provider.Gender
-	switch obj.Sex {
-	case 1:
-		gender = provider.Male
-	case 2:
-		gender = provider.Female
-	default:
-		gender = provider.Unknown
-	}
-	return &provider.UserInfo{
-		Key:      obj.UnionId,
-		Name:     obj.Nickname,
-		Avatar:   obj.HeadImgURL,
-		Gender:   gender,
-		Location: provider.Location(obj.Country, obj.Province, obj.City),
-		OpenId:   obj.OpenId,
-	}, nil
 }

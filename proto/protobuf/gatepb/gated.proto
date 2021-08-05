@@ -23,18 +23,23 @@ message Unicast {
 }
 
 // @Type(152)
-message Broadcast {
+message Multicast {
 	repeated int64 uids = 1;
 	bytes content = 2;
 }
 
 // @Type(153)
+message Broadcast {
+	bytes content = 1;
+}
+
+// @Type(154)
 message Kickout {
 	int64 uid = 1;
 	int32 reason = 2;
 }
 
-// @Type(154)
+// @Type(155)
 message UserLogin {
 	int64 gid = 1;
 	int64 uid = 2;
@@ -43,7 +48,7 @@ message UserLogin {
 	bool replace = 5;
 }
 
-// @Type(155)
+// @Type(156)
 message UserLogout {
 	int64 uid = 1;
 }

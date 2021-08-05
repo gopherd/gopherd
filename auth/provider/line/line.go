@@ -24,6 +24,18 @@ type lineClient struct{}
 
 var line = lineClient{}
 
+func (c lineClient) Authorize(accessToken, _ string) (*provider.UserInfo, error) {
+	respObj := userInfoResponse{}
+	if err := c.request(userinfoURL, accessToken, &respObj); err != nil {
+		return nil, err
+	}
+	return &provider.UserInfo{
+		Key:    respObj.UserId,
+		Name:   respObj.DisplayName,
+		Avatar: respObj.PictureURL,
+	}, nil
+}
+
 type response interface {
 	ErrorMessage() string
 }
@@ -74,16 +86,4 @@ func (c lineClient) request(url, accessToken string, respObj response) error {
 		}
 	}
 	return nil
-}
-
-func (c lineClient) Authorize(accessToken, _ string) (*provider.UserInfo, error) {
-	respObj := userInfoResponse{}
-	if err := c.request(userinfoURL, accessToken, &respObj); err != nil {
-		return nil, err
-	}
-	return &provider.UserInfo{
-		Key:    respObj.UserId,
-		Name:   respObj.DisplayName,
-		Avatar: respObj.PictureURL,
-	}, nil
 }

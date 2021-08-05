@@ -107,14 +107,14 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 		mod.routerCache.Add(ptc.Mod, ptc.Addr)
 	case *gatepb.UnregisterRouter:
 		mod.routerCache.Remove(ptc.Mod)
-	case *gatepb.Broadcast:
-		if len(ptc.Uids) == 0 {
-			err = mod.service.Frontend().BroadcastAll(ptc.Content)
-		} else {
-			err = mod.service.Frontend().Broadcast(ptc.Uids, ptc.Content)
-		}
 	case *gatepb.Unicast:
 		err = mod.service.Frontend().Unicast(ptc.Uid, ptc.Content)
+	case *gatepb.Multicast:
+		if len(ptc.Uids) > 0 {
+			err = mod.service.Frontend().Multicast(ptc.Uids, ptc.Content)
+		}
+	case *gatepb.Broadcast:
+		err = mod.service.Frontend().Broadcast(ptc.Content)
 	case *gatepb.Kickout:
 		err = mod.service.Frontend().Kickout(ptc.Uid, gatepb.KickoutReason(ptc.Reason))
 	default:

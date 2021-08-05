@@ -32,6 +32,45 @@ type qqClient struct{}
 
 var qq = qqClient{}
 
+func (c qqClient) Authorize(accessToken, _ string) (*provider.UserInfo, error) {
+	url := openIdURL + fmt.Sprintf("?access_token=%s", accessToken)
+	openIdResp := openIdResponse{}
+	if err := c.request(url, &openIdResp); err != nil {
+		return nil, err
+	}
+	url = userinfoURL + fmt.Sprintf("?access_token=%s&oauth_consumer_key=%s&openid=%s", accessToken, openIdResp.ClientId, openIdResp.OpenId)
+	respObj := userInfoResponse{}
+	if err := c.request(url, &respObj); err != nil {
+		return nil, err
+	}
+	var gender provider.Gender
+	if respObj.Gender == "男" {
+		gender = provider.Male
+	} else {
+		gender = provider.Female
+	}
+	var avatar string
+	switch {
+	case respObj.FigureURL_qq_2 != "":
+		avatar = respObj.FigureURL_qq_2
+	case respObj.FigureURL_qq_1 != "":
+		avatar = respObj.FigureURL_qq_1
+	case respObj.FigureURL_2 != "":
+		avatar = respObj.FigureURL_2
+	case respObj.FigureURL_1 != "":
+		avatar = respObj.FigureURL_1
+	case respObj.FigureURL != "":
+		avatar = respObj.FigureURL
+	}
+	return &provider.UserInfo{
+		Key:    openIdResp.OpenId,
+		Name:   respObj.Nickname,
+		Gender: gender,
+		Avatar: avatar,
+		OpenId: openIdResp.OpenId,
+	}, nil
+}
+
 type response interface {
 	ErrorCode() int
 	ErrorMsg() string
@@ -88,43 +127,4 @@ func (c qqClient) request(url string, respObj response) error {
 		}
 	}
 	return nil
-}
-
-func (c qqClient) Authorize(accessToken, _ string) (*provider.UserInfo, error) {
-	url := openIdURL + fmt.Sprintf("?access_token=%s", accessToken)
-	openIdResp := openIdResponse{}
-	if err := c.request(url, &openIdResp); err != nil {
-		return nil, err
-	}
-	url = userinfoURL + fmt.Sprintf("?access_token=%s&oauth_consumer_key=%s&openid=%s", accessToken, openIdResp.ClientId, openIdResp.OpenId)
-	respObj := userInfoResponse{}
-	if err := c.request(url, &respObj); err != nil {
-		return nil, err
-	}
-	var gender provider.Gender
-	if respObj.Gender == "男" {
-		gender = provider.Male
-	} else {
-		gender = provider.Female
-	}
-	var avatar string
-	switch {
-	case respObj.FigureURL_qq_2 != "":
-		avatar = respObj.FigureURL_qq_2
-	case respObj.FigureURL_qq_1 != "":
-		avatar = respObj.FigureURL_qq_1
-	case respObj.FigureURL_2 != "":
-		avatar = respObj.FigureURL_2
-	case respObj.FigureURL_1 != "":
-		avatar = respObj.FigureURL_1
-	case respObj.FigureURL != "":
-		avatar = respObj.FigureURL
-	}
-	return &provider.UserInfo{
-		Key:    openIdResp.OpenId,
-		Name:   respObj.Nickname,
-		Gender: gender,
-		Avatar: avatar,
-		OpenId: openIdResp.OpenId,
-	}, nil
 }

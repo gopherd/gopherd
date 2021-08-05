@@ -508,23 +508,6 @@ func (mod *frontendModule) afterLogout(s *session) error {
 	return mod.service.Backend().Logout(uid)
 }
 
-// BroadcastAll implements module.Frontend BroadcastAll method
-func (mod *frontendModule) BroadcastAll(content []byte) error {
-	mod.sessions.broadcast(content, time.Now().UnixNano()/1e6)
-	return nil
-}
-
-// Broadcast implements frontend.Module Broadcast method
-func (mod *frontendModule) Broadcast(uids []int64, content []byte) error {
-	for _, uid := range uids {
-		s := mod.sessions.find(uid)
-		if s != nil {
-			s.Write(content)
-		}
-	}
-	return nil
-}
-
 // Unicast implements frontend.Module Unicast method
 func (mod *frontendModule) Unicast(uid int64, content []byte) error {
 	s := mod.sessions.find(uid)
@@ -541,6 +524,23 @@ func (mod *frontendModule) Unicast(uid int64, content []byte) error {
 		Print("send to user session")
 	_, err := s.Write(content)
 	return err
+}
+
+// Broadcast implements module.Frontend Broadcast method
+func (mod *frontendModule) Broadcast(content []byte) error {
+	mod.sessions.broadcast(content, time.Now().UnixNano()/1e6)
+	return nil
+}
+
+// Multicast implements frontend.Module Multicast method
+func (mod *frontendModule) Multicast(uids []int64, content []byte) error {
+	for _, uid := range uids {
+		s := mod.sessions.find(uid)
+		if s != nil {
+			s.Write(content)
+		}
+	}
+	return nil
 }
 
 // Send implements frontend.Module Send method

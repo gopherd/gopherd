@@ -7,10 +7,11 @@ import registry "github.com/gopherd/doge/proto"
 const (
 	ForwardType          = 150
 	UnicastType          = 151
-	BroadcastType        = 152
-	KickoutType          = 153
-	UserLoginType        = 154
-	UserLogoutType       = 155
+	MulticastType        = 152
+	BroadcastType        = 153
+	KickoutType          = 154
+	UserLoginType        = 155
+	UserLogoutType       = 156
 	RegisterRouterType   = 161
 	UnregisterRouterType = 162
 )
@@ -18,6 +19,7 @@ const (
 func init() {
 	registry.Register("gatepb", ForwardType, func() registry.Message { return new(Forward) })
 	registry.Register("gatepb", UnicastType, func() registry.Message { return new(Unicast) })
+	registry.Register("gatepb", MulticastType, func() registry.Message { return new(Multicast) })
 	registry.Register("gatepb", BroadcastType, func() registry.Message { return new(Broadcast) })
 	registry.Register("gatepb", KickoutType, func() registry.Message { return new(Kickout) })
 	registry.Register("gatepb", UserLoginType, func() registry.Message { return new(UserLogin) })
@@ -28,6 +30,7 @@ func init() {
 
 func (*Forward) Type() registry.Type          { return ForwardType }
 func (*Unicast) Type() registry.Type          { return UnicastType }
+func (*Multicast) Type() registry.Type        { return MulticastType }
 func (*Broadcast) Type() registry.Type        { return BroadcastType }
 func (*Kickout) Type() registry.Type          { return KickoutType }
 func (*UserLogin) Type() registry.Type        { return UserLoginType }
