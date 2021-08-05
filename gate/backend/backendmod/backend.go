@@ -50,8 +50,8 @@ type Service interface {
 // backendModule implements backend.Module interface
 type backendModule struct {
 	*module.BaseModule
-	service     Service
-	routerCache *router.Cache
+	service Service
+	routers *router.Cache
 }
 
 func newBackendModule(service Service) *backendModule {
@@ -66,8 +66,8 @@ func (mod *backendModule) Init() error {
 	if err := mod.BaseModule.Init(); err != nil {
 		return err
 	}
-	mod.routerCache = router.NewCache(mod.service.Discovery())
-	if err := mod.routerCache.Init(); err != nil {
+	mod.routers = router.NewCache(mod.service.Discovery())
+	if err := mod.routers.Init(); err != nil {
 		return err
 	}
 	topic := path.Join(mod.service.Name(), strconv.FormatInt(mod.service.ID(), 10))
@@ -104,15 +104,13 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 
 	switch ptc := m.(type) {
 	case *gatepb.RegisterRouter:
-		mod.routerCache.Add(ptc.Mod, ptc.Addr)
+		mod.routers.Add(ptc.Mod, ptc.Addr)
 	case *gatepb.UnregisterRouter:
-		mod.routerCache.Remove(ptc.Mod)
+		mod.routers.Remove(ptc.Mod)
 	case *gatepb.Unicast:
 		err = mod.service.Frontend().Unicast(ptc.Uid, ptc.Content)
 	case *gatepb.Multicast:
-		if len(ptc.Uids) > 0 {
-			err = mod.service.Frontend().Multicast(ptc.Uids, ptc.Content)
-		}
+		err = mod.service.Frontend().Multicast(ptc.Uids, ptc.Content)
 	case *gatepb.Broadcast:
 		err = mod.service.Frontend().Broadcast(ptc.Content)
 	case *gatepb.Kickout:
@@ -174,7 +172,7 @@ func (mod *backendModule) send(typ proto.Type, m proto.Message) error {
 			Print("module not found")
 		return proto.ErrUnrecognizedType
 	}
-	topic, err := mod.routerCache.Lookup(modName)
+	topic, err := mod.routers.Lookup(modName)
 	if err != nil {
 		mod.Logger().Warn().
 			Int("type", int(typ)).
