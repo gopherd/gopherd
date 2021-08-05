@@ -15,6 +15,7 @@ import (
 	"github.com/gopherd/gopherd/auth"
 	"github.com/gopherd/gopherd/auth/config"
 	"github.com/gopherd/gopherd/auth/handler"
+	"github.com/gopherd/gopherd/auth/provider"
 	"github.com/gopherd/jwt"
 	"github.com/gopherd/log"
 )
@@ -150,7 +151,7 @@ func (s *server) Logger() *log.Logger {
 	return log.GlobalLogger()
 }
 
-func (s *server) Provider(name string) (auth.Provider, error) {
+func (s *server) Provider(name string) (provider.Provider, error) {
 	return nil, errors.New("TODO")
 }
 
@@ -162,6 +163,14 @@ func (s *server) Signer() *jwt.Signer {
 	return s.signer
 }
 
+func (s *server) QueryLocationByIP(ip string) string {
+	panic("TODO")
+}
+
 func (s *server) GenerateSMSCode(channel int, ip, mobile string) (time.Duration, error) {
 	return 0, errors.New("TODO")
+}
+
+func (s *server) AccountManager() auth.AccountManager {
+	panic("TODO")
 }
