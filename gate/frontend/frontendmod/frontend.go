@@ -25,6 +25,7 @@ import (
 	"github.com/gopherd/doge/text/resp"
 	"github.com/gopherd/doge/time/timer"
 	"github.com/gopherd/jwt"
+	"golang.org/x/net/websocket"
 
 	"github.com/gopherd/gopherd/gate/backend"
 	"github.com/gopherd/gopherd/gate/config"
@@ -104,7 +105,9 @@ func (mod *frontendModule) Init() error {
 		mod.server = server
 		mod.listener = listener
 	} else {
-		server, listener, err := httputil.ListenWebsocket(addr, "/", mod.onOpen, keepalive)
+		server, listener, err := httputil.Listen(addr, "/", websocket.Handler(func(conn *websocket.Conn) {
+			mod.onOpen(netutil.IP(conn.Request()), conn)
+		}), keepalive)
 		if err != nil {
 			return erron.Throw(err)
 		}
@@ -278,7 +281,7 @@ func (mod *frontendModule) unmarshal(s *session, typ proto.Type, body proto.Body
 			mod.Logger().Warn().
 				Int("type", int(typ)).
 				Int("size", int(size)).
-				String("name", proto.Nameof(m)).
+				String("name", m.Nameof()).
 				Error("error", err).
 				Print("read message body error")
 			return nil, err
@@ -294,7 +297,7 @@ func (mod *frontendModule) unmarshal(s *session, typ proto.Type, body proto.Body
 		if err != nil {
 			mod.Logger().Warn().
 				Int("type", int(typ)).
-				String("name", proto.Nameof(m)).
+				String("name", m.Nameof()).
 				Error("error", err).
 				Print("unmarshal typed message error")
 			return nil, err
@@ -555,8 +558,8 @@ func (mod *frontendModule) Send(uid int64, m proto.Message) error {
 	mod.Logger().Trace().
 		Int64("uid", uid).
 		Int64("sid", s.id).
-		Int32("type", int32(m.Type())).
-		String("name", proto.Nameof(m)).
+		Int32("type", int32(m.Typeof())).
+		String("name", m.Nameof()).
 		Print("send to user session")
 	return s.send(m)
 }

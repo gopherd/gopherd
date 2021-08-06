@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gopherd/doge/erron"
-	"github.com/gopherd/doge/net/httputil"
+	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/gopherd/auth"
 	"github.com/gopherd/gopherd/auth/api"
 )
@@ -27,7 +27,7 @@ func SMSCode(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ttl, err := service.GenerateSMSCode(req.Channel, httputil.IP(r), req.Mobile)
+	ttl, err := service.GenerateSMSCode(req.Channel, netutil.IP(r), req.Mobile)
 	if err != nil {
 		service.Response(w, r, erron.AsErrno(err))
 	} else {

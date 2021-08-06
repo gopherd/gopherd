@@ -6,7 +6,7 @@ import (
 
 	"github.com/gopherd/doge/crypto/cryptoutil"
 	"github.com/gopherd/doge/erron"
-	"github.com/gopherd/doge/net/httputil"
+	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/jwt"
 
 	"github.com/gopherd/gopherd/auth"
@@ -32,7 +32,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ip := httputil.IP(r)
+	ip := netutil.IP(r)
 
 	service.Logger().Debug().
 		String("api", tag).

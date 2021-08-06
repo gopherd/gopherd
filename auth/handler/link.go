@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gopherd/doge/erron"
-	"github.com/gopherd/doge/net/httputil"
+	"github.com/gopherd/doge/net/netutil"
 
 	"github.com/gopherd/gopherd/auth"
 	"github.com/gopherd/gopherd/auth/api"
@@ -127,7 +127,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	}
 	if user.Location != "" {
 		account.SetLocation(user.Location)
-	} else if location := service.QueryLocationByIP(httputil.IP(r)); location != "" {
+	} else if location := service.QueryLocationByIP(netutil.IP(r)); location != "" {
 		account.SetLocation(location)
 	}
 	account.SetProvider(req.Type, user.Key)

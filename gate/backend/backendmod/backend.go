@@ -99,7 +99,7 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 	mod.Logger().Debug().
 		Int("size", len(msg)).
 		Int("read", n).
-		Int("type", int(m.Type())).
+		Int("type", int(m.Typeof())).
 		Print("received a message from mq")
 
 	switch ptc := m.(type) {
@@ -121,8 +121,8 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 
 	if err != nil {
 		mod.Logger().Warn().
-			Int("type", int(m.Type())).
-			String("name", proto.Nameof(m)).
+			Int("type", int(m.Typeof())).
+			String("name", m.Nameof()).
 			Error("error", err).
 			Print("handle message error")
 	}
@@ -151,7 +151,7 @@ func (mod *backendModule) Login(claims jwt.Payload, replace bool) error {
 		Userdata: []byte(claims.Userdata),
 		Replace:  replace,
 	}
-	return mod.send(m.Type(), m)
+	return mod.send(m.Typeof(), m)
 }
 
 // Logout implements backend.Module Logout method
@@ -159,11 +159,11 @@ func (mod *backendModule) Logout(uid int64) error {
 	m := &gatepb.UserLogout{
 		Uid: uid,
 	}
-	return mod.send(m.Type(), m)
+	return mod.send(m.Typeof(), m)
 }
 
 // send message to mq.
-// typ maybe not equal to m.Type()
+// typ maybe not equal to m.Typeof()
 func (mod *backendModule) send(typ proto.Type, m proto.Message) error {
 	modName := proto.Moduleof(typ)
 	if modName == "" {
