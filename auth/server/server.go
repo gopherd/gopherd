@@ -190,22 +190,18 @@ func (s *server) getProvider(name string) (provider.Provider, bool) {
 	return p, ok
 }
 
-func (s *server) Response(w http.ResponseWriter, r *http.Request, data interface{}) error {
-	return s.http.server.JSONResponse(w, r, data)
-}
-
 func (s *server) Signer() *jwt.Signer {
 	return s.signer
 }
 
-func (s *server) QueryLocationByIP(ip string) string {
+func (s *server) AccountComponent() auth.AccountComponent {
 	panic("TODO")
 }
 
-func (s *server) GenerateSMSCode(channel int, ip, mobile string) (time.Duration, error) {
+func (s *server) SMSComponent() auth.SMSComponent {
 	panic("TODO")
 }
 
-func (s *server) AccountManager() auth.AccountManager {
+func (s *server) GeoComponent() auth.GeoComponent {
 	panic("TODO")
 }

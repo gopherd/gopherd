@@ -6,6 +6,7 @@ import (
 
 	"github.com/gopherd/doge/crypto/cryptoutil"
 	"github.com/gopherd/doge/erron"
+	"github.com/gopherd/doge/net/httputil"
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/jwt"
 
@@ -24,11 +25,11 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("api", tag).
 			Error("error", err).
 			Print("parse arguments error")
-		service.Response(w, r, erron.Errno(api.BadArgument, err))
+		httputil.JSONResponse(w, erron.Errno(api.BadArgument, err))
 		return
 	}
 	if req.Channel <= 0 {
-		service.Response(w, r, erron.Errnof(api.BadArgument, "invalid channel: %d", req.Channel))
+		httputil.JSONResponse(w, erron.Errnof(api.BadArgument, "invalid channel: %d", req.Channel))
 		return
 	}
 
@@ -44,7 +45,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	resp := new(api.AuthorizeResponse)
 	resp.Channel = req.Channel
 	if req.Type == "" {
-		service.Response(w, r, resp)
+		httputil.JSONResponse(w, resp)
 		return
 	}
 	var user *provider.UserInfo
@@ -56,7 +57,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 				String("api", tag).
 				String("provider", req.Type).
 				Print("provider not found")
-			service.Response(w, r, erron.AsErrno(err))
+			httputil.JSONResponse(w, erron.AsErrno(err))
 			return
 		}
 		// authorize for provider
@@ -66,7 +67,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 				String("api", tag).
 				String("provider", req.Type).
 				Print("provider.authorize error")
-			service.Response(w, r, erron.AsErrno(err))
+			httputil.JSONResponse(w, erron.AsErrno(err))
 			return
 		}
 		if req.Device == "" {
@@ -75,7 +76,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 					String("api", tag).
 					String("provider", req.Type).
 					Print("openId required")
-				service.Response(w, r, erron.Errnof(api.BadAuthorization, "openId not found"))
+				httputil.JSONResponse(w, erron.Errnof(api.BadAuthorization, "openId not found"))
 				return
 			}
 			req.Device = joinDeviceByOpenId(req.Type, user.OpenId)
@@ -89,7 +90,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		key = user.Key
 	}
 	// load or create account
-	account, isNew, err := service.AccountManager().LoadOrCreate(req.Type, key, req.Device)
+	account, isNew, err := service.AccountComponent().LoadOrCreate(req.Type, key, req.Device)
 	if err != nil {
 		service.Logger().Error().
 			String("api", tag).
@@ -98,7 +99,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("device", req.Device).
 			Error("error", err).
 			Print("load or create account error")
-		service.Response(w, r, erron.AsErrno(err))
+		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	}
 	if user != nil {
@@ -112,14 +113,14 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			account.SetLocation(user.Location)
 		}
 	} else {
-		if location := service.QueryLocationByIP(ip); location != "" {
+		if location := service.GeoComponent().QueryLocationByIP(ip); location != "" {
 			account.SetLocation(location)
 		}
 	}
 	// authorized success
 	claims, err := authorized(service, ip, req, account, isNew)
 	if err != nil {
-		service.Response(w, r, erron.Errnof(api.InternalServerError, "internal server error"))
+		httputil.JSONResponse(w, erron.Errnof(api.InternalServerError, "internal server error"))
 		return
 	}
 
@@ -134,7 +135,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("api", tag).
 			Error("error", err).
 			Print("signed access token error")
-		service.Response(w, r, erron.AsErrno(err))
+		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	}
 	resp.AccessTokenExpiredAt = claims.ExpiresAt
@@ -150,11 +151,11 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("api", tag).
 			Error("error", err).
 			Print("signed refresh token error")
-		service.Response(w, r, erron.AsErrno(err))
+		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	}
 	resp.RefreshTokenExpiredAt = claims.ExpiresAt
-	service.Response(w, r, resp)
+	httputil.JSONResponse(w, resp)
 }
 
 func joinDeviceByOpenId(provider, openId string) string {
@@ -188,5 +189,5 @@ func authorized(service auth.Service, ip string, req *api.AuthorizeRequest, acco
 		account.SetRegister(now, ip)
 	}
 	account.SetLastLogin(now, ip)
-	return claims, service.AccountManager().Store(req.Type, account)
+	return claims, service.AccountComponent().Store(req.Type, account)
 }

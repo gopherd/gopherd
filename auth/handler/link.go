@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gopherd/doge/erron"
+	"github.com/gopherd/doge/net/httputil"
 	"github.com/gopherd/doge/net/netutil"
 
 	"github.com/gopherd/gopherd/auth"
@@ -20,7 +21,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("api", tag).
 			Error("error", err).
 			Print("parse arguments error")
-		service.Response(w, r, erron.Errno(api.BadArgument, err))
+		httputil.JSONResponse(w, erron.Errno(api.BadArgument, err))
 		return
 	}
 
@@ -36,7 +37,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 				String("api", tag).
 				String("credentials", credentials).
 				Print("unsupported Authorization header")
-			service.Response(w, r, erron.Errno(api.Unauthorized, err))
+			httputil.JSONResponse(w, erron.Errno(api.Unauthorized, err))
 			return
 		}
 		accessToken = strings.TrimPrefix(credentials, prefix)
@@ -49,16 +50,16 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("api", tag).
 			Error("error", err).
 			Print("invalid access token")
-		service.Response(w, r, erron.Errno(api.Unauthorized, err))
+		httputil.JSONResponse(w, erron.Errno(api.Unauthorized, err))
 		return
 	}
-	account, found, err := service.AccountManager().Get(claims.Payload.ID)
+	account, found, err := service.AccountComponent().Get(claims.Payload.ID)
 	if err != nil {
 		service.Logger().Warn().
 			String("api", tag).
 			Error("error", err).
 			Print("get account error")
-		service.Response(w, r, erron.AsErrno(err))
+		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	}
 	if !found {
@@ -66,7 +67,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("api", tag).
 			Int64("uid", claims.Payload.ID).
 			Print("account not found by access token")
-		service.Response(w, r, erron.AsErrno(err))
+		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	}
 
@@ -77,7 +78,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("api", tag).
 			String("provider", req.Type).
 			Print("provider not found")
-		service.Response(w, r, erron.AsErrno(err))
+		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	}
 	user, err := provider.Authorize(req.Account, req.Secret)
@@ -86,7 +87,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("api", tag).
 			String("provider", req.Type).
 			Print("provider.authorize error")
-		service.Response(w, r, erron.AsErrno(err))
+		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	}
 	if user.Key == "" {
@@ -94,19 +95,19 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("api", tag).
 			String("provider", req.Type).
 			Print("key not present")
-		service.Response(w, r, erron.Errno(api.Unauthorized, err))
+		httputil.JSONResponse(w, erron.Errno(api.Unauthorized, err))
 		return
 	}
 
 	// check account
-	if found, err := service.AccountManager().Exist(req.Type, user.Key); err != nil {
+	if found, err := service.AccountComponent().Exist(req.Type, user.Key); err != nil {
 		service.Logger().Error().
 			String("api", tag).
 			String("provider", req.Type).
 			String("key", user.Key).
 			Error("error", err).
 			Print("check account error")
-		service.Response(w, r, erron.AsErrno(err))
+		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	} else if found {
 		service.Logger().Error().
@@ -114,7 +115,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("provider", req.Type).
 			String("key", user.Key).
 			Print("account already exist")
-		service.Response(w, r, erron.Errnof(api.AccountFound, "account found"))
+		httputil.JSONResponse(w, erron.Errnof(api.AccountFound, "account found"))
 		return
 	}
 
@@ -127,11 +128,11 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	}
 	if user.Location != "" {
 		account.SetLocation(user.Location)
-	} else if location := service.QueryLocationByIP(netutil.IP(r)); location != "" {
+	} else if location := service.GeoComponent().QueryLocationByIP(netutil.IP(r)); location != "" {
 		account.SetLocation(location)
 	}
 	account.SetProvider(req.Type, user.Key)
-	if err := service.AccountManager().Store(req.Type, account); err != nil {
+	if err := service.AccountComponent().Store(req.Type, account); err != nil {
 		service.Logger().Error().
 			String("api", tag).
 			String("provider", req.Type).
@@ -139,11 +140,11 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			Int64("uid", account.GetID()).
 			Error("error", err).
 			Print("store account error")
-		service.Response(w, r, erron.AsErrno(err))
+		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	}
 
 	var resp = new(api.LinkResponse)
 	resp.OpenId = user.OpenId
-	service.Response(w, r, resp)
+	httputil.JSONResponse(w, resp)
 }

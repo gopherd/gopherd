@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gopherd/doge/erron"
+	"github.com/gopherd/doge/net/httputil"
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/gopherd/auth"
 	"github.com/gopherd/gopherd/auth/api"
@@ -19,19 +20,19 @@ func SMSCode(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			String("api", tag).
 			Error("error", err).
 			Print("parse arguments error")
-		service.Response(w, r, erron.Errno(api.BadArgument, err))
+		httputil.JSONResponse(w, erron.Errno(api.BadArgument, err))
 		return
 	}
 	if req.Channel <= 0 {
-		service.Response(w, r, erron.Errnof(api.BadArgument, "invalid channel: %d", req.Channel))
+		httputil.JSONResponse(w, erron.Errnof(api.BadArgument, "invalid channel: %d", req.Channel))
 		return
 	}
 
-	ttl, err := service.GenerateSMSCode(req.Channel, netutil.IP(r), req.Mobile)
+	ttl, err := service.SMSComponent().GenerateCode(req.Channel, netutil.IP(r), req.Mobile)
 	if err != nil {
-		service.Response(w, r, erron.AsErrno(err))
+		httputil.JSONResponse(w, erron.AsErrno(err))
 	} else {
-		service.Response(w, r, api.SmsCodeResponse{
+		httputil.JSONResponse(w, api.SmsCodeResponse{
 			Seconds: int(ttl / time.Second),
 		})
 	}

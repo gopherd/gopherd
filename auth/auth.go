@@ -49,16 +49,23 @@ type Service interface {
 	Logger() *log.Logger
 	Signer() *jwt.Signer
 	Provider(name string) (provider.Provider, error)
-	Response(w http.ResponseWriter, r *http.Request, v interface{}) error
-	GenerateSMSCode(channel int, ip, mobile string) (time.Duration, error)
-	AccountManager() AccountManager
-	QueryLocationByIP(ip string) string
+	AccountComponent() AccountComponent
+	SMSComponent() SMSComponent
+	GeoComponent() GeoComponent
 }
 
-type AccountManager interface {
+type AccountComponent interface {
 	Exist(provider, key string) (bool, error)
 	Store(provider string, account Account) error
 	Load(provider, key string) (Account, error)
 	LoadOrCreate(provider, key, device string) (Account, bool, error)
 	Get(uid int64) (Account, bool, error)
+}
+
+type SMSComponent interface {
+	GenerateCode(channel int, ip, mobile string) (time.Duration, error)
+}
+
+type GeoComponent interface {
+	QueryLocationByIP(ip string) string
 }
