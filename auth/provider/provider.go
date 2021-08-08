@@ -36,6 +36,9 @@ const (
 	Female
 )
 
+// builtin provider
+const Device = "device"
+
 func Location(country, province, city string) string {
 	if country != "" {
 		if province != "" && province != country {
@@ -68,15 +71,9 @@ type UserInfo struct {
 	OpenId string
 }
 
-// builtin providers
-const (
-	Device  = "device"
-	SMSCode = "smscode"
-	Email   = "email"
-)
-
 type Provider interface {
 	Authorize(account, credentials string) (*UserInfo, error)
+	Close() error
 }
 
 type Driver func(source string) (Provider, error)

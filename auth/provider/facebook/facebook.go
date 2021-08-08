@@ -109,3 +109,5 @@ func (c facebookClient) Authorize(accessToken, _ string) (*provider.UserInfo, er
 		Avatar: avatar,
 	}, nil
 }
+
+func (c facebookClient) Close() error { return nil }

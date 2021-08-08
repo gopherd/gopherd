@@ -147,3 +147,5 @@ type userInfoResponse struct {
 	UnionId    string   `json:"unionid"`
 	OpenId     string   `json:"openid"`
 }
+
+func (c *wechatClient) Close() error { return nil }

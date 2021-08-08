@@ -28,7 +28,7 @@ func SMSCode(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ttl, err := service.SMSComponent().GenerateCode(req.Channel, netutil.IP(r), req.Mobile)
+	ttl, err := service.SMSModule().GenerateCode(req.Channel, netutil.IP(r), req.Mobile)
 	if err != nil {
 		httputil.JSONResponse(w, erron.AsErrno(err))
 	} else {

@@ -128,3 +128,5 @@ func (c qqClient) request(url string, respObj response) error {
 	}
 	return nil
 }
+
+func (c qqClient) Close() error { return nil }

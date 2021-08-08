@@ -53,7 +53,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		httputil.JSONResponse(w, erron.Errno(api.Unauthorized, err))
 		return
 	}
-	account, found, err := service.AccountComponent().Get(claims.Payload.ID)
+	account, err := service.AccountModule().Get(claims.Payload.ID)
 	if err != nil {
 		service.Logger().Warn().
 			String("api", tag).
@@ -62,7 +62,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	}
-	if !found {
+	if account == nil {
 		service.Logger().Info().
 			String("api", tag).
 			Int64("uid", claims.Payload.ID).
@@ -100,7 +100,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check account
-	if found, err := service.AccountComponent().Exist(req.Type, user.Key); err != nil {
+	if found, err := service.AccountModule().Exist(req.Type, user.Key); err != nil {
 		service.Logger().Error().
 			String("api", tag).
 			String("provider", req.Type).
@@ -128,11 +128,11 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	}
 	if user.Location != "" {
 		account.SetLocation(user.Location)
-	} else if location := service.GeoComponent().QueryLocationByIP(netutil.IP(r)); location != "" {
+	} else if location := service.GeoModule().QueryLocationByIP(netutil.IP(r)); location != "" {
 		account.SetLocation(location)
 	}
 	account.SetProvider(req.Type, user.Key)
-	if err := service.AccountComponent().Store(req.Type, account); err != nil {
+	if err := service.AccountModule().Store(req.Type, account); err != nil {
 		service.Logger().Error().
 			String("api", tag).
 			String("provider", req.Type).

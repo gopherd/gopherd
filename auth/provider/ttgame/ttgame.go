@@ -212,3 +212,5 @@ func (c *ttgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedSt
 	}
 	return info
 }
+
+func (c *ttgameClient) Close() error { return nil }

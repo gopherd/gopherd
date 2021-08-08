@@ -42,6 +42,8 @@ func (c *googleClient) Authorize(accessToken, _ string) (*provider.UserInfo, err
 	}, nil
 }
 
+func (c *googleClient) Close() error { return nil }
+
 func getStringFromClaims(claims map[string]interface{}, key string) string {
 	if v, ok := claims[key]; ok && v != nil {
 		if s, ok := v.(string); ok {

@@ -90,7 +90,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		key = user.Key
 	}
 	// load or create account
-	account, isNew, err := service.AccountComponent().LoadOrCreate(req.Type, key, req.Device)
+	account, isNew, err := service.AccountModule().LoadOrCreate(req.Type, key, req.Device)
 	if err != nil {
 		service.Logger().Error().
 			String("api", tag).
@@ -113,7 +113,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			account.SetLocation(user.Location)
 		}
 	} else {
-		if location := service.GeoComponent().QueryLocationByIP(ip); location != "" {
+		if location := service.GeoModule().QueryLocationByIP(ip); location != "" {
 			account.SetLocation(location)
 		}
 	}
@@ -189,5 +189,5 @@ func authorized(service auth.Service, ip string, req *api.AuthorizeRequest, acco
 		account.SetRegister(now, ip)
 	}
 	account.SetLastLogin(now, ip)
-	return claims, service.AccountComponent().Store(req.Type, account)
+	return claims, service.AccountModule().Store(req.Type, account)
 }

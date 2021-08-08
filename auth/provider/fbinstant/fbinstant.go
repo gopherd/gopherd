@@ -132,3 +132,5 @@ func (c *fbinstantClient) parsePayload(signature string) ([]byte, error) {
 
 	return payload, nil
 }
+
+func (c *fbinstantClient) Close() error { return nil }

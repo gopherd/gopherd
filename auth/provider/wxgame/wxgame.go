@@ -197,3 +197,5 @@ func (c *wxgameClient) decryptAndVerify(raw, sig, sessionKey, ivStr, encryptedSt
 	}
 	return info
 }
+
+func (c *wxgameClient) Close() error { return nil }

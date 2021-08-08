@@ -16,9 +16,13 @@ import (
 	"github.com/gopherd/log"
 
 	"github.com/gopherd/gopherd/auth"
+	"github.com/gopherd/gopherd/auth/account"
 	"github.com/gopherd/gopherd/auth/config"
+	"github.com/gopherd/gopherd/auth/geo"
 	"github.com/gopherd/gopherd/auth/handler"
+	"github.com/gopherd/gopherd/auth/oos"
 	"github.com/gopherd/gopherd/auth/provider"
+	"github.com/gopherd/gopherd/auth/sms"
 )
 
 type server struct {
@@ -31,7 +35,13 @@ type server struct {
 		listener net.Listener
 		server   *httputil.HTTPServer
 	}
-	signer *jwt.Signer
+	signer  *jwt.Signer
+	modules struct {
+		oos     auth.OOSModule
+		account auth.AccountModule
+		sms     auth.SMSModule
+		geo     auth.GeoModule
+	}
 
 	providersMu sync.RWMutex
 	providers   map[string]provider.Provider
@@ -52,6 +62,10 @@ func New(cfg *config.Config) service.Service {
 	}
 	s.BaseService = service.NewBaseService(s, cfg)
 	s.internal.config = cfg
+	s.modules.oos = s.AddModule(oos.New(s)).(auth.OOSModule)
+	s.modules.account = s.AddModule(account.New(s)).(auth.AccountModule)
+	s.modules.sms = s.AddModule(sms.New(s)).(auth.SMSModule)
+	s.modules.geo = s.AddModule(geo.New(s)).(auth.GeoModule)
 	return s
 }
 
@@ -76,6 +90,7 @@ func (s *server) Init() error {
 	if err != nil {
 		return erron.Throwf("new signer from file %q error %w", cfg.JWT.Filename, err)
 	}
+
 	s.http.server = httputil.NewHTTPServer(cfg.HTTP)
 	s.http.listener, err = s.http.server.Listen()
 	if err != nil {
@@ -101,13 +116,21 @@ func (s *server) Shutdown() error {
 	return s.BaseService.Shutdown()
 }
 
-func (s *server) registerHTTPHandlers() {
-	s.registeAPI("/auth/authorize", handler.Authorize)
-	s.registeAPI("/auth/link", handler.Link)
-	s.registeAPI("/auth/smscode", handler.SMSCode)
+func or(x, y string) string {
+	if x != "" {
+		return x
+	}
+	return y
 }
 
-func (s *server) registeAPI(pattern string, h auth.Handler) {
+func (s *server) registerHTTPHandlers() {
+	routers := s.Config().Options.Routers
+	s.handleFunc(or(routers.Authorize, "/auth/authorize"), handler.Authorize)
+	s.handleFunc(or(routers.Link, "/auth/link"), handler.Link)
+	s.handleFunc(or(routers.SMSCode, "/auth/smscode"), handler.SMSCode)
+}
+
+func (s *server) handleFunc(pattern string, h func(auth.Service, http.ResponseWriter, *http.Request)) {
 	s.http.server.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		h(s, w, r)
 	})
@@ -148,8 +171,8 @@ func (s *server) onUpdate(now time.Time, dt time.Duration) {
 	s.BaseService.Update(now, dt)
 }
 
-func (s *server) Options() auth.Options {
-	return s.Config().Options
+func (s *server) Options() *auth.Options {
+	return &s.Config().Options
 }
 
 func (s *server) Logger() *log.Logger {
@@ -160,25 +183,17 @@ func (s *server) Provider(name string) (provider.Provider, error) {
 	if p, ok := s.getProvider(name); ok {
 		return p, nil
 	}
-	cfg := s.Config()
-	if cfg.Proviers == nil {
-		return nil, provider.ErrProviderNotFound
-	}
-	var source string
-	if s, ok := cfg.Proviers[name]; !ok {
-		return nil, provider.ErrProviderNotFound
-	} else {
-		source = s
-	}
-	p, err := provider.Open(name, source)
+	p, err := s.createProvider(name)
 	if err != nil {
 		return nil, err
 	}
 	s.providersMu.Lock()
-	defer s.providersMu.Unlock()
 	if old, ok := s.providers[name]; ok {
+		s.providersMu.Unlock()
+		p.Close()
 		return old, nil
 	}
+	defer s.providersMu.Unlock()
 	s.providers[name] = p
 	return p, nil
 }
@@ -190,18 +205,25 @@ func (s *server) getProvider(name string) (provider.Provider, bool) {
 	return p, ok
 }
 
+func (s *server) createProvider(name string) (provider.Provider, error) {
+	cfg := s.Config()
+	if cfg.Proviers == nil {
+		return nil, provider.ErrProviderNotFound
+	}
+	var source string
+	if s, ok := cfg.Proviers[name]; !ok {
+		return nil, provider.ErrProviderNotFound
+	} else {
+		source = s
+	}
+	return provider.Open(name, source)
+}
+
 func (s *server) Signer() *jwt.Signer {
 	return s.signer
 }
 
-func (s *server) AccountComponent() auth.AccountComponent {
-	panic("TODO")
-}
-
-func (s *server) SMSComponent() auth.SMSComponent {
-	panic("TODO")
-}
-
-func (s *server) GeoComponent() auth.GeoComponent {
-	panic("TODO")
-}
+func (s *server) OOSModule() auth.OOSModule         { return s.modules.oos }
+func (s *server) AccountModule() auth.AccountModule { return s.modules.account }
+func (s *server) SMSModule() auth.SMSModule         { return s.modules.sms }
+func (s *server) GeoModule() auth.GeoModule         { return s.modules.geo }

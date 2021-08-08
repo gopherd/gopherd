@@ -87,3 +87,5 @@ func (c lineClient) request(url, accessToken string, respObj response) error {
 	}
 	return nil
 }
+
+func (c lineClient) Close() error { return nil }
