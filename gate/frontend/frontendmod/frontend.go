@@ -223,13 +223,13 @@ func (mod *frontendModule) onMessage(s *session, typ proto.Type, body proto.Body
 	switch typ {
 	case gatepb.PingType:
 		err = mod.ping(s, typ, body)
-	case gatepb.LoginReqType:
+	case gatepb.LoginRequestType:
 		if m, err = mod.unmarshal(s, typ, body); err == nil {
-			err = mod.login(s, m.(*gatepb.LoginReq))
+			err = mod.login(s, m.(*gatepb.LoginRequest))
 		}
-	case gatepb.LogoutReqType:
+	case gatepb.LogoutRequestType:
 		if m, err = mod.unmarshal(s, typ, body); err == nil {
-			err = mod.logout(s, m.(*gatepb.LogoutReq))
+			err = mod.logout(s, m.(*gatepb.LogoutRequest))
 		}
 	default:
 		err = mod.forward(s, typ, body)
@@ -382,11 +382,11 @@ func (mod *frontendModule) ping(s *session, typ proto.Type, body proto.Body) err
 	}
 }
 
-// login handles LoginReq message
-func (mod *frontendModule) login(s *session, req *gatepb.LoginReq) error {
+// login handles LoginRequest message
+func (mod *frontendModule) login(s *session, req *gatepb.LoginRequest) error {
 	cfg := mod.service.Config()
 	if s.getState() == stateOverflow {
-		s.send(&gatepb.LogoutRes{
+		s.send(&gatepb.LogoutResponse{
 			Reason: gatepb.KickoutReason_ReasonOverflow,
 		})
 		s.Close(nil)
@@ -460,7 +460,7 @@ func (mod *frontendModule) retryLogin(sid int64, ps *pendingSession, now int64) 
 			Int64("uid", ps.uid).
 			Error("error", err).
 			Print("set user logged failed")
-		s.send(&gatepb.LogoutRes{
+		s.send(&gatepb.LogoutResponse{
 			Reason: gatepb.KickoutReason_ReasonLoginAnotherDevice,
 		})
 		s.Close(nil)
@@ -474,7 +474,7 @@ func (mod *frontendModule) retryLogin(sid int64, ps *pendingSession, now int64) 
 			Int64("sid", sid).
 			Int64("uid", ps.uid).
 			Print("user login repeated")
-		s.send(&gatepb.LogoutRes{
+		s.send(&gatepb.LogoutResponse{
 			Reason: gatepb.KickoutReason_ReasonLoginAnotherDevice,
 		})
 		s.Close(nil)
@@ -495,8 +495,8 @@ func (mod *frontendModule) afterLogin(s *session) error {
 	return mod.service.Backend().Login(s.getUser().token, false)
 }
 
-func (mod *frontendModule) logout(s *session, req *gatepb.LogoutReq) error {
-	s.send(&gatepb.LogoutRes{
+func (mod *frontendModule) logout(s *session, req *gatepb.LogoutRequest) error {
+	s.send(&gatepb.LogoutResponse{
 		Reason: gatepb.KickoutReason_ReasonUserLogout,
 	})
 	s.Close(nil)

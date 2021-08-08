@@ -8,21 +8,21 @@ import proto "google.golang.org/protobuf/proto"
 var _ = proto.Marshal
 
 const (
-	ErrorType     = 130
-	PingType      = 131
-	PongType      = 132
-	LoginReqType  = 133
-	LogoutReqType = 134
-	LogoutResType = 135
+	ErrorType          = 130
+	PingType           = 131
+	PongType           = 132
+	LoginRequestType   = 133
+	LogoutRequestType  = 134
+	LogoutResponseType = 135
 )
 
 func init() {
 	registry.Register("gatepb", ErrorType, func() registry.Message { return new(Error) })
 	registry.Register("gatepb", PingType, func() registry.Message { return new(Ping) })
 	registry.Register("gatepb", PongType, func() registry.Message { return new(Pong) })
-	registry.Register("gatepb", LoginReqType, func() registry.Message { return new(LoginReq) })
-	registry.Register("gatepb", LogoutReqType, func() registry.Message { return new(LogoutReq) })
-	registry.Register("gatepb", LogoutResType, func() registry.Message { return new(LogoutRes) })
+	registry.Register("gatepb", LoginRequestType, func() registry.Message { return new(LoginRequest) })
+	registry.Register("gatepb", LogoutRequestType, func() registry.Message { return new(LogoutRequest) })
+	registry.Register("gatepb", LogoutResponseType, func() registry.Message { return new(LogoutResponse) })
 }
 
 func (*Error) Typeof() registry.Type        { return ErrorType }
@@ -49,26 +49,26 @@ func (m *Pong) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
-func (*LoginReq) Typeof() registry.Type        { return LoginReqType }
-func (m *LoginReq) Sizeof() int                { return proto.Size(m) }
-func (m *LoginReq) Nameof() string             { return string(proto.MessageName(m)) }
-func (m *LoginReq) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
-func (m *LoginReq) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
+func (*LoginRequest) Typeof() registry.Type        { return LoginRequestType }
+func (m *LoginRequest) Sizeof() int                { return proto.Size(m) }
+func (m *LoginRequest) Nameof() string             { return string(proto.MessageName(m)) }
+func (m *LoginRequest) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
+func (m *LoginRequest) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
-func (*LogoutReq) Typeof() registry.Type        { return LogoutReqType }
-func (m *LogoutReq) Sizeof() int                { return proto.Size(m) }
-func (m *LogoutReq) Nameof() string             { return string(proto.MessageName(m)) }
-func (m *LogoutReq) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
-func (m *LogoutReq) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
+func (*LogoutRequest) Typeof() registry.Type        { return LogoutRequestType }
+func (m *LogoutRequest) Sizeof() int                { return proto.Size(m) }
+func (m *LogoutRequest) Nameof() string             { return string(proto.MessageName(m)) }
+func (m *LogoutRequest) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
+func (m *LogoutRequest) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
-func (*LogoutRes) Typeof() registry.Type        { return LogoutResType }
-func (m *LogoutRes) Sizeof() int                { return proto.Size(m) }
-func (m *LogoutRes) Nameof() string             { return string(proto.MessageName(m)) }
-func (m *LogoutRes) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
-func (m *LogoutRes) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
+func (*LogoutResponse) Typeof() registry.Type        { return LogoutResponseType }
+func (m *LogoutResponse) Sizeof() int                { return proto.Size(m) }
+func (m *LogoutResponse) Nameof() string             { return string(proto.MessageName(m)) }
+func (m *LogoutResponse) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
+func (m *LogoutResponse) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }

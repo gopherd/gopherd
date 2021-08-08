@@ -23,16 +23,16 @@ message Pong {
 }
 
 // @Type(133)
-message LoginReq {
+message LoginRequest {
 	string token = 1;
 }
 
 // @Type(134)
-message LogoutReq {
+message LogoutRequest {
 }
 
 // @Type(135)
-message LogoutRes {
+message LogoutResponse {
 	KickoutReason reason = 1;
 }
 

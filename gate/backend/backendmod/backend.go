@@ -108,11 +108,11 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 	case *gatepb.UnregisterRouter:
 		mod.routers.Remove(ptc.Mod)
 	case *gatepb.Unicast:
-		err = mod.service.Frontend().Unicast(ptc.Uid, ptc.Content)
+		err = mod.service.Frontend().Unicast(ptc.Uid, ptc.Msg)
 	case *gatepb.Multicast:
-		err = mod.service.Frontend().Multicast(ptc.Uids, ptc.Content)
+		err = mod.service.Frontend().Multicast(ptc.Uids, ptc.Msg)
 	case *gatepb.Broadcast:
-		err = mod.service.Frontend().Broadcast(ptc.Content)
+		err = mod.service.Frontend().Broadcast(ptc.Msg)
 	case *gatepb.Kickout:
 		err = mod.service.Frontend().Kickout(ptc.Uid, gatepb.KickoutReason(ptc.Reason))
 	default:
@@ -134,22 +134,22 @@ func (mod *backendModule) Forward(uid int64, typ proto.Type, body []byte) error 
 	m.Reset()
 	m.Gid = int64(mod.service.ID())
 	m.Uid = uid
-	m.MsgType = int32(typ)
-	m.MsgContent = []byte(body)
-	if len(m.MsgContent) < (1 << 12) {
+	m.Typ = int32(typ)
+	m.Msg = []byte(body)
+	if len(m.Msg) < (1 << 12) {
 		defer forwardPool.Put(m)
 	}
 	return mod.send(typ, m)
 }
 
 // Login implements backend.Module Login method
-func (mod *backendModule) Login(claims jwt.Payload, replace bool) error {
+func (mod *backendModule) Login(claims jwt.Payload, race bool) error {
 	m := &gatepb.UserLogin{
 		Gid:      int64(mod.service.ID()),
 		Uid:      claims.ID,
 		Ip:       []byte(net.ParseIP(claims.IP)),
 		Userdata: []byte(claims.Userdata),
-		Replace:  replace,
+		Race:     race,
 	}
 	return mod.send(m.Typeof(), m)
 }

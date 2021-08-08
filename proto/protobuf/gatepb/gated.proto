@@ -9,28 +9,27 @@ option optimize_for = LITE_RUNTIME;
 // @Type(150)
 message Forward {
 	// session fields
-	int64 gid = 1; // gate id
-	int64 uid = 2; // user id
-
-	int32 msgType = 10;
-	bytes msgContent = 11;
+	int64 gid = 1;
+	int64 uid = 2;
+	int32 typ = 3;
+	bytes msg = 4;
 }
 
 // @Type(151)
 message Unicast {
 	int64 uid = 1;
-	bytes content = 2;
+	bytes msg = 2;
 }
 
 // @Type(152)
 message Multicast {
 	repeated int64 uids = 1;
-	bytes content = 2;
+	bytes msg = 2;
 }
 
 // @Type(153)
 message Broadcast {
-	bytes content = 1;
+	bytes msg = 1;
 }
 
 // @Type(154)
@@ -45,7 +44,7 @@ message UserLogin {
 	int64 uid = 2;
 	bytes ip = 3;
 	bytes userdata = 4;
-	bool replace = 5;
+	bool race = 5;
 }
 
 // @Type(156)
