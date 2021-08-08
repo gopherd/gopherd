@@ -39,7 +39,7 @@ message Kickout {
 }
 
 // @Type(155)
-message UserLogin {
+message Login {
 	int64 gid = 1;
 	int64 uid = 2;
 	bytes ip = 3;
@@ -48,17 +48,12 @@ message UserLogin {
 }
 
 // @Type(156)
-message UserLogout {
+message Logout {
 	int64 uid = 1;
 }
 
 // @Type(161)
-message RegisterRouter {
+message Router {
 	string mod = 1;
 	string addr = 2;
-}
-
-// @Type(162)
-message UnregisterRouter {
-	string mod = 1;
 }

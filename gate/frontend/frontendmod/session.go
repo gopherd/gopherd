@@ -71,6 +71,9 @@ type session struct {
 		}
 		writerMu sync.Mutex
 	}
+	cache struct {
+		forward *gatepb.Forward
+	}
 }
 
 func newSession(logger *log.ContextLogger, id int64, ip string, conn net.Conn, handler handler) *session {
@@ -83,11 +86,17 @@ func newSession(logger *log.ContextLogger, id int64, ip string, conn net.Conn, h
 	}
 	s.internal.state = int32(stateCreated)
 	s.internal.session = netutil.NewSession(conn, s)
+	s.cache.forward = new(gatepb.Forward)
 	return s
 }
 
 func (s *session) keepalive() {
 	atomic.StoreInt64(&s.internal.lastKeepaliveTime, time.Now().UnixNano()/1e6)
+}
+
+func (s *session) getForward() *gatepb.Forward {
+	s.cache.forward.Reset()
+	return s.cache.forward
 }
 
 func (s *session) ContentType() proto.ContentType {

@@ -8,15 +8,14 @@ import proto "google.golang.org/protobuf/proto"
 var _ = proto.Marshal
 
 const (
-	ForwardType          = 150
-	UnicastType          = 151
-	MulticastType        = 152
-	BroadcastType        = 153
-	KickoutType          = 154
-	UserLoginType        = 155
-	UserLogoutType       = 156
-	RegisterRouterType   = 161
-	UnregisterRouterType = 162
+	ForwardType   = 150
+	UnicastType   = 151
+	MulticastType = 152
+	BroadcastType = 153
+	KickoutType   = 154
+	LoginType     = 155
+	LogoutType    = 156
+	RouterType    = 161
 )
 
 func init() {
@@ -25,10 +24,9 @@ func init() {
 	registry.Register("gatepb", MulticastType, func() registry.Message { return new(Multicast) })
 	registry.Register("gatepb", BroadcastType, func() registry.Message { return new(Broadcast) })
 	registry.Register("gatepb", KickoutType, func() registry.Message { return new(Kickout) })
-	registry.Register("gatepb", UserLoginType, func() registry.Message { return new(UserLogin) })
-	registry.Register("gatepb", UserLogoutType, func() registry.Message { return new(UserLogout) })
-	registry.Register("gatepb", RegisterRouterType, func() registry.Message { return new(RegisterRouter) })
-	registry.Register("gatepb", UnregisterRouterType, func() registry.Message { return new(UnregisterRouter) })
+	registry.Register("gatepb", LoginType, func() registry.Message { return new(Login) })
+	registry.Register("gatepb", LogoutType, func() registry.Message { return new(Logout) })
+	registry.Register("gatepb", RouterType, func() registry.Message { return new(Router) })
 }
 
 func (*Forward) Typeof() registry.Type        { return ForwardType }
@@ -71,34 +69,26 @@ func (m *Kickout) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) 
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
-func (*UserLogin) Typeof() registry.Type        { return UserLoginType }
-func (m *UserLogin) Sizeof() int                { return proto.Size(m) }
-func (m *UserLogin) Nameof() string             { return string(proto.MessageName(m)) }
-func (m *UserLogin) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
-func (m *UserLogin) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
+func (*Login) Typeof() registry.Type        { return LoginType }
+func (m *Login) Sizeof() int                { return proto.Size(m) }
+func (m *Login) Nameof() string             { return string(proto.MessageName(m)) }
+func (m *Login) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
+func (m *Login) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
-func (*UserLogout) Typeof() registry.Type        { return UserLogoutType }
-func (m *UserLogout) Sizeof() int                { return proto.Size(m) }
-func (m *UserLogout) Nameof() string             { return string(proto.MessageName(m)) }
-func (m *UserLogout) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
-func (m *UserLogout) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
+func (*Logout) Typeof() registry.Type        { return LogoutType }
+func (m *Logout) Sizeof() int                { return proto.Size(m) }
+func (m *Logout) Nameof() string             { return string(proto.MessageName(m)) }
+func (m *Logout) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
+func (m *Logout) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
-func (*RegisterRouter) Typeof() registry.Type        { return RegisterRouterType }
-func (m *RegisterRouter) Sizeof() int                { return proto.Size(m) }
-func (m *RegisterRouter) Nameof() string             { return string(proto.MessageName(m)) }
-func (m *RegisterRouter) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
-func (m *RegisterRouter) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
-	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
-}
-
-func (*UnregisterRouter) Typeof() registry.Type        { return UnregisterRouterType }
-func (m *UnregisterRouter) Sizeof() int                { return proto.Size(m) }
-func (m *UnregisterRouter) Nameof() string             { return string(proto.MessageName(m)) }
-func (m *UnregisterRouter) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
-func (m *UnregisterRouter) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
+func (*Router) Typeof() registry.Type        { return RouterType }
+func (m *Router) Sizeof() int                { return proto.Size(m) }
+func (m *Router) Nameof() string             { return string(proto.MessageName(m)) }
+func (m *Router) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
+func (m *Router) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }

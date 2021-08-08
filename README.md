@@ -3,8 +3,9 @@ gopherd
 
 ## Dependeny tools
 
-* [protoc-gen-gopherd](https://github.com/gopherd/tools/tree/main/cmd/protoc-gen-gopherd)
 * [loglint](https://github.com/gopherd/log/tree/main/cmd/loglint)
+* [protoc-gen-gopherd](https://github.com/gopherd/tools/tree/main/cmd/protoc-gen-gopherd)
+* [midlang](https://github.com/midlang/mid)
 
 ## commands
 

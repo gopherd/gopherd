@@ -1,14 +1,14 @@
 package backend
 
 import (
-	"github.com/gopherd/doge/proto"
+	"github.com/gopherd/gopherd/proto/gatepb"
 	"github.com/gopherd/jwt"
 )
 
 // Module used to connects backend servers
 type Module interface {
 	Busy() bool
-	Forward(uid int64, typ proto.Type, body []byte) error
+	Forward(*gatepb.Forward) error
 	Login(payload jwt.Payload, race bool) error
 	Logout(uid int64) error
 }

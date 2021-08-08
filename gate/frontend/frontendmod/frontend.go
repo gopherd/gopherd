@@ -345,7 +345,7 @@ func (mod *frontendModule) delUserLogged(uid int64) (bool, error) {
 
 // forward forwards message to other services
 func (mod *frontendModule) forward(s *session, typ proto.Type, body proto.Body) error {
-	content, err := ioutil.ReadAll(body)
+	msg, err := ioutil.ReadAll(body)
 	if err != nil {
 		mod.Logger().Warn().
 			Error("error", err).
@@ -354,7 +354,12 @@ func (mod *frontendModule) forward(s *session, typ proto.Type, body proto.Body) 
 			Print("read body error")
 		return err
 	}
-	return mod.service.Backend().Forward(s.getUid(), typ, content)
+	f := s.getForward()
+	f.Gid = mod.service.ID()
+	f.Uid = s.getUid()
+	f.Typ = int32(typ)
+	f.Msg = msg
+	return mod.service.Backend().Forward(f)
 }
 
 // ping handles Ping message

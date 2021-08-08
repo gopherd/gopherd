@@ -103,10 +103,6 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 		Print("received a message from mq")
 
 	switch ptc := m.(type) {
-	case *gatepb.RegisterRouter:
-		mod.routers.Add(ptc.Mod, ptc.Addr)
-	case *gatepb.UnregisterRouter:
-		mod.routers.Remove(ptc.Mod)
 	case *gatepb.Unicast:
 		err = mod.service.Frontend().Unicast(ptc.Uid, ptc.Msg)
 	case *gatepb.Multicast:
@@ -115,6 +111,12 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 		err = mod.service.Frontend().Broadcast(ptc.Msg)
 	case *gatepb.Kickout:
 		err = mod.service.Frontend().Kickout(ptc.Uid, gatepb.KickoutReason(ptc.Reason))
+	case *gatepb.Router:
+		if ptc.Addr == "" {
+			mod.routers.Remove(ptc.Mod)
+		} else {
+			mod.routers.Add(ptc.Mod, ptc.Addr)
+		}
 	default:
 		err = errUnknownMessage
 	}
@@ -129,22 +131,13 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 }
 
 // Forward implements backend.Module Forward method
-func (mod *backendModule) Forward(uid int64, typ proto.Type, body []byte) error {
-	m := forwardPool.Get().(*gatepb.Forward)
-	m.Reset()
-	m.Gid = int64(mod.service.ID())
-	m.Uid = uid
-	m.Typ = int32(typ)
-	m.Msg = []byte(body)
-	if len(m.Msg) < (1 << 12) {
-		defer forwardPool.Put(m)
-	}
-	return mod.send(typ, m)
+func (mod *backendModule) Forward(f *gatepb.Forward) error {
+	return mod.send(proto.Type(f.Typ), f)
 }
 
 // Login implements backend.Module Login method
 func (mod *backendModule) Login(claims jwt.Payload, race bool) error {
-	m := &gatepb.UserLogin{
+	m := &gatepb.Login{
 		Gid:      int64(mod.service.ID()),
 		Uid:      claims.ID,
 		Ip:       []byte(net.ParseIP(claims.IP)),
@@ -156,7 +149,7 @@ func (mod *backendModule) Login(claims jwt.Payload, race bool) error {
 
 // Logout implements backend.Module Logout method
 func (mod *backendModule) Logout(uid int64) error {
-	m := &gatepb.UserLogout{
+	m := &gatepb.Logout{
 		Uid: uid,
 	}
 	return mod.send(m.Typeof(), m)
