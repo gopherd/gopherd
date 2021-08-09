@@ -8,14 +8,15 @@
 .DS_Store
 
 # Binaries for programs and plugins
-/target/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-/cmd/protoc-gen-gopherd/protoc-gen-gopherd
+/target/
 /cmd/gated/gated
+/cmd/authd/authd
+/cmd/gopherd-cli/gopherd-cli
 
 # Test binary, built with `go test -c`
 *.test

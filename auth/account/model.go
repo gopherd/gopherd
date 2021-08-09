@@ -49,3 +49,11 @@ func (a *account) GetLocation() string                { return a.Location }
 func (a *account) SetLocation(x string)               { a.Location = x }
 func (a *account) GetProvider(x string) string        { return a.Providers[x] }
 func (a *account) SetProvider(x, y string)            { a.Providers[x] = y }
+
+func (a *account) GetProviders() []string {
+	var providers = make([]string, 0, len(a.Providers))
+	for k := range a.Providers {
+		providers = append(providers, k)
+	}
+	return providers
+}

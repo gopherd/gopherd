@@ -1,6 +1,7 @@
 package backendmod
 
 import (
+	"encoding/json"
 	"errors"
 	"net"
 	"path"
@@ -137,11 +138,15 @@ func (mod *backendModule) Forward(f *gatepb.Forward) error {
 
 // Login implements backend.Module Login method
 func (mod *backendModule) Login(claims jwt.Payload, race bool) error {
+	userdata, err := json.Marshal(claims.Values)
+	if err != nil {
+		return err
+	}
 	m := &gatepb.Login{
 		Gid:      int64(mod.service.ID()),
 		Uid:      claims.ID,
 		Ip:       []byte(net.ParseIP(claims.IP)),
-		Userdata: []byte(claims.Userdata),
+		Userdata: userdata,
 		Race:     race,
 	}
 	return mod.send(m.Typeof(), m)

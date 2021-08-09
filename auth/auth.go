@@ -31,6 +31,7 @@ type Account interface {
 	SetLocation(string)
 	GetProvider(string) string
 	SetProvider(provider, key string)
+	GetProviders() []string
 }
 
 type Service interface {
