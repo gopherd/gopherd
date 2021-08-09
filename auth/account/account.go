@@ -6,8 +6,12 @@ import (
 	"github.com/gopherd/gopherd/auth"
 )
 
+type Service interface {
+	OOSModule() auth.OOSModule
+}
+
 // New creates an auth.AccountModule
-func New(service auth.Service) interface {
+func New(service Service) interface {
 	module.Module
 	auth.AccountModule
 } {
@@ -17,17 +21,17 @@ func New(service auth.Service) interface {
 // accountModule implements auth.AccountModule
 type accountModule struct {
 	module.BaseModule
-	service auth.Service
+	service Service
 }
 
-func newAccountModule(service auth.Service) *accountModule {
+func newAccountModule(service Service) *accountModule {
 	return &accountModule{
 		service: service,
 	}
 }
 
-func (mod *accountModule) Exist(provider, key string) (bool, error) {
-	return mod.service.OOSModule().HasObject(tableName, byProvider(provider, key))
+func (mod *accountModule) Contains(by ...auth.Field) (bool, error) {
+	return mod.service.OOSModule().HasObject(tableName)
 }
 
 func (mod *accountModule) Store(provider string, account auth.Account) error {
@@ -35,9 +39,9 @@ func (mod *accountModule) Store(provider string, account auth.Account) error {
 	return err
 }
 
-func (mod *accountModule) Load(provider, key string) (auth.Account, error) {
+func (mod *accountModule) Load(by ...auth.Field) (auth.Account, error) {
 	a := newAccount()
-	found, err := mod.service.OOSModule().GetObject(a, byProvider(provider, key))
+	found, err := mod.service.OOSModule().GetObject(a, by...)
 	if err != nil {
 		return nil, err
 	} else if !found {
@@ -48,7 +52,7 @@ func (mod *accountModule) Load(provider, key string) (auth.Account, error) {
 
 func (mod *accountModule) LoadOrCreate(provider, key, device string) (auth.Account, bool, error) {
 	a := newAccount()
-	found, err := mod.service.OOSModule().GetObject(a, byProvider(provider, key))
+	found, err := mod.service.OOSModule().GetObject(a, auth.ByProvider(provider, key))
 	if err != nil {
 		return nil, false, err
 	} else if found {
@@ -60,15 +64,4 @@ func (mod *accountModule) LoadOrCreate(provider, key, device string) (auth.Accou
 		return nil, false, nil
 	}
 	return a, true, nil
-}
-
-func (mod *accountModule) Get(id int64) (auth.Account, error) {
-	a := newAccount()
-	found, err := mod.service.OOSModule().GetObject(a, byID(id))
-	if err != nil {
-		return nil, err
-	} else if !found {
-		return nil, err
-	}
-	return a, nil
 }

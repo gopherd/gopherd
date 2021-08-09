@@ -1,27 +1,10 @@
 package account
 
 import (
-	"strconv"
 	"time"
-
-	"github.com/gopherd/gopherd/auth"
 )
 
 const tableName = "account"
-
-func byProvider(provider, key string) auth.Cond {
-	return auth.Cond{
-		Field: "provider_" + provider,
-		Value: key,
-	}
-}
-
-func byID(id int64) auth.Cond {
-	return auth.Cond{
-		Field: "id",
-		Value: strconv.FormatInt(id, 10),
-	}
-}
 
 // account implements auth.Account
 type account struct {

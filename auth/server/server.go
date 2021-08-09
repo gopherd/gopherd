@@ -124,7 +124,7 @@ func or(x, y string) string {
 }
 
 func (s *server) registerHTTPHandlers() {
-	routers := s.Config().Options.Routers
+	routers := s.Config().Routers
 	s.handleFunc(or(routers.Authorize, "/auth/authorize"), handler.Authorize)
 	s.handleFunc(or(routers.Link, "/auth/link"), handler.Link)
 	s.handleFunc(or(routers.SMSCode, "/auth/smscode"), handler.SMSCode)
@@ -169,10 +169,6 @@ func (s *server) run() {
 
 func (s *server) onUpdate(now time.Time, dt time.Duration) {
 	s.BaseService.Update(now, dt)
-}
-
-func (s *server) Options() *auth.Options {
-	return &s.Config().Options
 }
 
 func (s *server) Logger() *log.Logger {

@@ -18,6 +18,7 @@ import (
 func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	const tag = "authorize"
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	lang := r.Header.Get("X-Lang")
 	req := new(api.AuthorizeRequest)
 	err := req.Parse(r)
 	if err != nil {
@@ -113,8 +114,10 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 			account.SetLocation(user.Location)
 		}
 	} else {
-		if location := service.GeoModule().QueryLocationByIP(ip); location != "" {
-			account.SetLocation(location)
+		if country, province, city, err := service.GeoModule().QueryLocation(ip, lang); err == nil {
+			if location := provider.Location(country, province, city); location != "" {
+				account.SetLocation(location)
+			}
 		}
 	}
 	// authorized success
@@ -125,7 +128,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// sign access_token and refresh_token
-	options := service.Options()
+	options := service.Config()
 	claims.Issuer = options.JWT.Issuer
 	claims.IssuedAt = time.Now().Unix()
 	claims.ExpiresAt = claims.IssuedAt + int64(options.AccessTokenTTL)
@@ -163,7 +166,6 @@ func joinDeviceByOpenId(provider, openId string) string {
 }
 
 func authorized(service auth.Service, ip string, req *api.AuthorizeRequest, account auth.Account, isNew bool) (*jwt.Claims, error) {
-	// 玩家被冻结账号
 	if banned, reason := account.GetBanned(); banned {
 		service.Logger().Info().
 			Int64("uid", account.GetID()).

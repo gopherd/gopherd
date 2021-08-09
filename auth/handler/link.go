@@ -10,11 +10,13 @@ import (
 
 	"github.com/gopherd/gopherd/auth"
 	"github.com/gopherd/gopherd/auth/api"
+	"github.com/gopherd/gopherd/auth/provider"
 )
 
 func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	const tag = "link"
 	req := new(api.LinkRequest)
+	lang := r.Header.Get("X-Lang")
 	err := req.Parse(r)
 	if err != nil {
 		service.Logger().Info().
@@ -26,7 +28,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		options     = service.Options()
+		options     = service.Config()
 		accessToken = req.Token
 	)
 	if accessToken == "" {
@@ -53,7 +55,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		httputil.JSONResponse(w, erron.Errno(api.Unauthorized, err))
 		return
 	}
-	account, err := service.AccountModule().Get(claims.Payload.ID)
+	account, err := service.AccountModule().Load(auth.ByID(claims.Payload.ID))
 	if err != nil {
 		service.Logger().Warn().
 			String("api", tag).
@@ -72,7 +74,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// provider authorize
-	provider, err := service.Provider(req.Type)
+	p, err := service.Provider(req.Type)
 	if err != nil {
 		service.Logger().Error().
 			String("api", tag).
@@ -81,7 +83,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		httputil.JSONResponse(w, erron.AsErrno(err))
 		return
 	}
-	user, err := provider.Authorize(req.Account, req.Secret)
+	user, err := p.Authorize(req.Account, req.Secret)
 	if err != nil {
 		service.Logger().Error().
 			String("api", tag).
@@ -100,7 +102,7 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check account
-	if found, err := service.AccountModule().Exist(req.Type, user.Key); err != nil {
+	if found, err := service.AccountModule().Contains(auth.ByProvider(req.Type, user.Key)); err != nil {
 		service.Logger().Error().
 			String("api", tag).
 			String("provider", req.Type).
@@ -128,8 +130,10 @@ func Link(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	}
 	if user.Location != "" {
 		account.SetLocation(user.Location)
-	} else if location := service.GeoModule().QueryLocationByIP(netutil.IP(r)); location != "" {
-		account.SetLocation(location)
+	} else if country, province, city, err := service.GeoModule().QueryLocation(netutil.IP(r), lang); err == nil {
+		if location := provider.Location(country, province, city); location != "" {
+			account.SetLocation(location)
+		}
 	}
 	account.SetProvider(req.Type, user.Key)
 	if err := service.AccountModule().Store(req.Type, account); err != nil {

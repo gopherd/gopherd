@@ -5,9 +5,14 @@ import (
 
 	"github.com/gopherd/doge/service/module"
 	"github.com/gopherd/gopherd/auth"
+	"github.com/gopherd/gopherd/auth/config"
 )
 
-func New(service auth.Service) interface {
+type Service interface {
+	Config() *config.Config
+}
+
+func New(service Service) interface {
 	module.Module
 	auth.SMSModule
 } {
@@ -17,10 +22,10 @@ func New(service auth.Service) interface {
 // smsModule implements auth.SMSModule
 type smsModule struct {
 	module.BaseModule
-	service auth.Service
+	service Service
 }
 
-func newSMSModule(service auth.Service) *smsModule {
+func newSMSModule(service Service) *smsModule {
 	return &smsModule{
 		service: service,
 	}

@@ -1,8 +1,10 @@
 package auth
 
 import (
+	"strconv"
 	"time"
 
+	"github.com/gopherd/gopherd/auth/config"
 	"github.com/gopherd/gopherd/auth/provider"
 	"github.com/gopherd/jwt"
 	"github.com/gopherd/log"
@@ -31,23 +33,8 @@ type Account interface {
 	SetProvider(provider, key string)
 }
 
-type Options struct {
-	JWT struct {
-		Filename string `json:"filename"`
-		Issuer   string `json:"issuer"`
-		KeyId    string `json:"key_id"`
-	} `json:"jwt"`
-	AccessTokenTTL  int64 `json:"access_token_ttl"`
-	RefreshTokenTTL int64 `json:"refresh_token_ttl"`
-	Routers         struct {
-		Authorize string `json:"authorize"` // default: /auth/authorize
-		Link      string `json:"link"`      // default: /auth/link
-		SMSCode   string `json:"smscode"`   // default: /auth/smscode
-	} `json:"routers"`
-}
-
 type Service interface {
-	Options() *Options
+	Config() *config.Config
 	Logger() *log.Logger
 	Signer() *jwt.Signer
 	Provider(name string) (provider.Provider, error)
@@ -59,23 +46,36 @@ type Service interface {
 
 // OOSModule reprensets an object-oriented storage system
 type OOSModule interface {
-	GetObject(obj interface{}, where ...Cond) (bool, error)
-	HasObject(key string, where ...Cond) (bool, error)
+	GetObject(obj interface{}, by ...Field) (bool, error)
+	HasObject(key string, by ...Field) (bool, error)
 	InsertObject(obj interface{}) error
 	UpdateObject(obj interface{}, fields ...string) (int64, error)
 }
 
-type Cond struct {
-	Field string
+type Field struct {
+	Name  string
 	Value string
 }
 
+func ByProvider(name, key string) Field {
+	return Field{
+		Name:  "provider_" + name,
+		Value: key,
+	}
+}
+
+func ByID(id int64) Field {
+	return Field{
+		Name:  "id",
+		Value: strconv.FormatInt(id, 10),
+	}
+}
+
 type AccountModule interface {
-	Exist(provider, key string) (bool, error)
+	Contains(by ...Field) (bool, error)
 	Store(provider string, account Account) error
-	Load(provider, key string) (Account, error)
+	Load(by ...Field) (Account, error)
 	LoadOrCreate(provider, key, device string) (Account, bool, error)
-	Get(uid int64) (Account, error)
 }
 
 type SMSModule interface {
@@ -83,5 +83,5 @@ type SMSModule interface {
 }
 
 type GeoModule interface {
-	QueryLocationByIP(ip string) string
+	QueryLocation(ip, lang string) (country, province, city string, err error)
 }
