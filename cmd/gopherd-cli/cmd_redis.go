@@ -23,23 +23,32 @@ type redisCommandInfo struct {
 	usage  string
 }
 
-var redisTips = make(map[string]*redisCommandInfo)
+var redisCompletions = make(map[string]*redisCommandInfo)
 
 func init() {
 	s := bufio.NewScanner(bytes.NewReader(redisTxt))
 	for s.Scan() {
-		syntax := s.Text()
-		if !s.Scan() {
-			break
+		var syntax = s.Text()
+		if strings.HasPrefix(syntax, "#") {
+			continue
 		}
-		usage := s.Text()
+		var usage string
+		for {
+			if !s.Scan() {
+				return
+			}
+			usage = s.Text()
+			if !strings.HasPrefix(usage, "#") {
+				break
+			}
+		}
 		if i := strings.IndexByte(syntax, ' '); i > 0 {
-			redisTips[strings.ToLower(syntax[:i])] = &redisCommandInfo{
+			redisCompletions[strings.ToLower(syntax[:i])] = &redisCommandInfo{
 				syntax: syntax[i+1:],
 				usage:  usage,
 			}
 		} else {
-			redisTips[strings.ToLower(syntax)] = &redisCommandInfo{
+			redisCompletions[strings.ToLower(syntax)] = &redisCommandInfo{
 				usage: usage,
 			}
 		}
@@ -78,7 +87,7 @@ var cmdConnect = register(&command{
 					}
 					cmd.ReadOnly = readonly
 				}
-				commandTrie.Add(cmd.Name)
+				complet.add(cmd.Name)
 				env.redis.commands[cmd.Name] = cmd
 			}
 		}

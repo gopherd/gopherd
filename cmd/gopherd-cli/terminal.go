@@ -247,17 +247,17 @@ func (term *terminal) complete(d prompt.Document) []prompt.Suggest {
 		//}
 	}
 
-	for _, name := range commandTrie.Search(text, -1) {
+	for _, name := range complet.search(text, -1) {
 		cmd, ok := commands[name]
 		if !ok {
 			if term.env.redis != nil && term.env.redis.commands != nil {
 				if _, ok := term.env.redis.commands[strings.ToLower(name)]; !ok {
 					continue
 				}
-				if tip, ok := redisTips[name]; ok {
-					desc := tip.syntax
-					if tip.usage != "" {
-						desc += " (" + tip.usage + ")"
+				if comp, ok := redisCompletions[name]; ok {
+					desc := comp.syntax
+					if comp.usage != "" {
+						desc += " (" + comp.usage + ")"
 					}
 					suggests = append(suggests, prompt.Suggest{
 						Text:        name,

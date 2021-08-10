@@ -68,7 +68,7 @@ type command struct {
 var (
 	commands     = make(map[string]*command)
 	uniqCommands []*command
-	commandTrie  trie
+	complet      completion
 )
 
 func register(cmd *command) *command {
@@ -81,10 +81,10 @@ func register(cmd *command) *command {
 		}
 	}
 	commands[cmd.name] = cmd
-	commandTrie.Add(cmd.name)
+	complet.add(cmd.name)
 	for _, alias := range cmd.aliases {
 		commands[alias] = cmd
-		commandTrie.Add(alias)
+		complet.add(alias)
 	}
 	uniqCommands = append(uniqCommands, cmd)
 	return cmd
