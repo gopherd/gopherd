@@ -223,28 +223,7 @@ func (term *terminal) complete(d prompt.Document) []prompt.Suggest {
 		suggests []prompt.Suggest
 	)
 	if end > 0 {
-		// (TODO)
-		//cmd, ok := commands[string(runes[:end])]
-		//if !ok || cmd.complete == nil {
-		//	return nil
-		//}
-		//var pos int
-		//args, err := shell.Split(text)
-		//if err != nil {
-		//	ie, ok := err.(*shell.IncompleteError)
-		//	if !ok {
-		//		return nil
-		//	}
-		//	pos = ie.Begin
-		//} else {
-		//	pos = len(text)
-		//}
-		//appended := cmd.complete(text, pos, args)
-		//for i := range appended {
-		//	suggests = append(suggests, prompt.Suggest{
-		//		Text: text + appended[i],
-		//	})
-		//}
+		// (TODO): add completion of found command
 	}
 
 	for _, name := range complet.search(text, -1) {

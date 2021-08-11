@@ -53,12 +53,14 @@ type backendModule struct {
 	*module.BaseModule
 	service Service
 	routers *router.Cache
+	arena   proto.Arena
 }
 
 func newBackendModule(service Service) *backendModule {
 	return &backendModule{
 		BaseModule: module.NewBaseModule("backend"),
 		service:    service,
+		arena:      new(arena),
 	}
 }
 
@@ -89,7 +91,7 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 			Print("mq consume error")
 		return
 	}
-	n, m, err := proto.Decode(msg)
+	n, m, err := proto.Decode(msg, mod.arena)
 	if err != nil {
 		mod.Logger().Error().
 			Int("size", len(msg)).
@@ -97,6 +99,7 @@ func (mod *backendModule) consume(topic string, msg []byte, err error) {
 			Print("unmarshal message from mq error")
 		return
 	}
+	defer mod.arena.Put(m)
 	mod.Logger().Debug().
 		Int("size", len(msg)).
 		Int("read", n).
@@ -168,7 +171,7 @@ func (mod *backendModule) send(typ proto.Type, m proto.Message) error {
 		mod.Logger().Warn().
 			Int("type", int(typ)).
 			Print("module not found")
-		return proto.ErrUnrecognizedType
+		return proto.ErrUnrecognizedType(typ)
 	}
 	topic, err := mod.routers.Lookup(modName)
 	if err != nil {

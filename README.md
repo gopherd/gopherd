@@ -1,7 +1,7 @@
 gopherd
 =======
 
-## Dependeny tools
+## Dependent tools
 
 * [loglint](https://github.com/gopherd/log/tree/main/cmd/loglint)
 * [protoc-gen-gopherd](https://github.com/gopherd/tools/tree/main/cmd/protoc-gen-gopherd)
@@ -10,5 +10,6 @@ gopherd
 ## commands
 
 #### gated (DOING)
-
-#### authd (TODO)
+#### authd (DOING)
+#### pushd (TODO)
+#### roomd (TODO)

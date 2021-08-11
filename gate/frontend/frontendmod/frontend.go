@@ -271,7 +271,7 @@ func (mod *frontendModule) onCommand(s *session, cmd *resp.Command) error {
 func (mod *frontendModule) unmarshal(s *session, typ proto.Type, body proto.Body) (proto.Message, error) {
 	m := proto.New(typ)
 	if m == nil {
-		return nil, proto.ErrUnrecognizedType
+		return nil, proto.ErrUnrecognizedType(typ)
 	}
 	if size := body.Len(); size > 0 {
 		buf := proto.AllocBuffer()

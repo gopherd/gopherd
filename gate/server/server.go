@@ -6,6 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/gopherd/doge/erron"
+	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/service"
 
 	"github.com/gopherd/gopherd/gate/backend"
@@ -28,6 +29,7 @@ type server struct {
 		frontend frontend.Module
 		backend  backend.Module
 	}
+	arena *proto.Arena
 }
 
 // New creates gated service
@@ -104,5 +106,6 @@ func (s *server) onUpdate(now time.Time, dt time.Duration) {
 	s.BaseService.Update(now, dt)
 }
 
+func (s *server) Arena() *proto.Arena       { return s.arena }
 func (s *server) Frontend() frontend.Module { return s.modules.frontend }
 func (s *server) Backend() backend.Module   { return s.modules.backend }

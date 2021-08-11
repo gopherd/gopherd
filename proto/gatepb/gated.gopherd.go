@@ -30,64 +30,64 @@ func init() {
 }
 
 func (*Forward) Typeof() registry.Type        { return ForwardType }
+func (*Forward) Nameof() string               { return "gatepb.Forward" }
 func (m *Forward) Sizeof() int                { return proto.Size(m) }
-func (m *Forward) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Forward) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Forward) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*Unicast) Typeof() registry.Type        { return UnicastType }
+func (*Unicast) Nameof() string               { return "gatepb.Unicast" }
 func (m *Unicast) Sizeof() int                { return proto.Size(m) }
-func (m *Unicast) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Unicast) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Unicast) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*Multicast) Typeof() registry.Type        { return MulticastType }
+func (*Multicast) Nameof() string               { return "gatepb.Multicast" }
 func (m *Multicast) Sizeof() int                { return proto.Size(m) }
-func (m *Multicast) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Multicast) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Multicast) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*Broadcast) Typeof() registry.Type        { return BroadcastType }
+func (*Broadcast) Nameof() string               { return "gatepb.Broadcast" }
 func (m *Broadcast) Sizeof() int                { return proto.Size(m) }
-func (m *Broadcast) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Broadcast) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Broadcast) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*Kickout) Typeof() registry.Type        { return KickoutType }
+func (*Kickout) Nameof() string               { return "gatepb.Kickout" }
 func (m *Kickout) Sizeof() int                { return proto.Size(m) }
-func (m *Kickout) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Kickout) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Kickout) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*Login) Typeof() registry.Type        { return LoginType }
+func (*Login) Nameof() string               { return "gatepb.Login" }
 func (m *Login) Sizeof() int                { return proto.Size(m) }
-func (m *Login) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Login) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Login) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*Logout) Typeof() registry.Type        { return LogoutType }
+func (*Logout) Nameof() string               { return "gatepb.Logout" }
 func (m *Logout) Sizeof() int                { return proto.Size(m) }
-func (m *Logout) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Logout) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Logout) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*Router) Typeof() registry.Type        { return RouterType }
+func (*Router) Nameof() string               { return "gatepb.Router" }
 func (m *Router) Sizeof() int                { return proto.Size(m) }
-func (m *Router) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Router) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Router) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)

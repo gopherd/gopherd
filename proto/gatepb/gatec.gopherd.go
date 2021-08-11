@@ -26,48 +26,48 @@ func init() {
 }
 
 func (*Error) Typeof() registry.Type        { return ErrorType }
+func (*Error) Nameof() string               { return "gatepb.Error" }
 func (m *Error) Sizeof() int                { return proto.Size(m) }
-func (m *Error) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Error) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Error) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*Ping) Typeof() registry.Type        { return PingType }
+func (*Ping) Nameof() string               { return "gatepb.Ping" }
 func (m *Ping) Sizeof() int                { return proto.Size(m) }
-func (m *Ping) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Ping) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Ping) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*Pong) Typeof() registry.Type        { return PongType }
+func (*Pong) Nameof() string               { return "gatepb.Pong" }
 func (m *Pong) Sizeof() int                { return proto.Size(m) }
-func (m *Pong) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *Pong) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *Pong) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*LoginRequest) Typeof() registry.Type        { return LoginRequestType }
+func (*LoginRequest) Nameof() string               { return "gatepb.LoginRequest" }
 func (m *LoginRequest) Sizeof() int                { return proto.Size(m) }
-func (m *LoginRequest) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *LoginRequest) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *LoginRequest) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*LogoutRequest) Typeof() registry.Type        { return LogoutRequestType }
+func (*LogoutRequest) Nameof() string               { return "gatepb.LogoutRequest" }
 func (m *LogoutRequest) Sizeof() int                { return proto.Size(m) }
-func (m *LogoutRequest) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *LogoutRequest) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *LogoutRequest) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
 }
 
 func (*LogoutResponse) Typeof() registry.Type        { return LogoutResponseType }
+func (*LogoutResponse) Nameof() string               { return "gatepb.LogoutResponse" }
 func (m *LogoutResponse) Sizeof() int                { return proto.Size(m) }
-func (m *LogoutResponse) Nameof() string             { return string(proto.MessageName(m)) }
 func (m *LogoutResponse) Unmarshal(buf []byte) error { return proto.Unmarshal(buf, m) }
 func (m *LogoutResponse) MarshalAppend(buf []byte, useCachedSize bool) ([]byte, error) {
 	return proto.MarshalOptions{UseCachedSize: useCachedSize}.MarshalAppend(buf, m)
