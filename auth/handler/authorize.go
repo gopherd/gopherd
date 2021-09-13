@@ -131,7 +131,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 	options := service.Config()
 	claims.Issuer = options.JWT.Issuer
 	claims.IssuedAt = time.Now().Unix()
-	claims.ExpiresAt = claims.IssuedAt + int64(options.AccessTokenTTL)
+	claims.ExpiresAt = claims.IssuedAt + options.AccessTokenTTL
 	resp.AccessToken, err = service.Signer().Sign(claims)
 	if err != nil {
 		service.Logger().Error().
@@ -142,7 +142,7 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp.AccessTokenExpiredAt = claims.ExpiresAt
-	claims.ExpiresAt = claims.IssuedAt + int64(options.RefreshTokenTTL)
+	claims.ExpiresAt = claims.IssuedAt + options.RefreshTokenTTL
 	claims.Payload = jwt.Payload{
 		Salt:  cryptoutil.GenerateSalt(16),
 		Scope: "*",
@@ -180,11 +180,8 @@ func authorized(service auth.Service, ip string, req *api.AuthorizeRequest, acco
 	claims.Payload.Scope = "*"
 	claims.Payload.ID = account.GetID()
 	claims.Payload.IP = ip
-	claims.Payload.Values = make(map[string]interface{})
-	for _, name := range account.GetProviders() {
-		if value := account.GetProvider(name); value != "" {
-			claims.Payload.Values[name] = value
-		}
+	claims.Payload.Values = map[string]interface{}{
+		"providers": account.GetProviders(),
 	}
 
 	service.Logger().Info().

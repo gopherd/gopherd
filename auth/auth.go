@@ -10,7 +10,73 @@ import (
 	"github.com/gopherd/log"
 )
 
+type Object interface {
+	TableName() string
+}
+
+type Providers interface {
+	Get(name string) string
+	Set(name, value string)
+}
+
+var NewProviders func() Providers = newProviders
+
+// default DefaultProviders
+type DefaultProviders struct {
+	Mobile   string `gorm:"uniqueIndex"`
+	Email    string `gorm:"uniqueIndex"`
+	Google   string `gorm:"uniqueIndex"`
+	Line     string `gorm:"uniqueIndex"`
+	Facebook string `gorm:"uniqueIndex"`
+	Wechat   string `gorm:"uniqueIndex"`
+	Toutiao  string `gorm:"uniqueIndex"`
+}
+
+func newProviders() Providers { return new(DefaultProviders) }
+
+func (p *DefaultProviders) Get(name string) string {
+	switch name {
+	case "mobile":
+		return p.Mobile
+	case "email":
+		return p.Email
+	case "google":
+		return p.Google
+	case "line":
+		return p.Line
+	case "facebook":
+		return p.Facebook
+	case "wechat", "wxgame":
+		return p.Wechat
+	case "toutiao", "ttgame":
+		return p.Toutiao
+	default:
+		return ""
+	}
+}
+
+func (p *DefaultProviders) Set(name, value string) {
+	switch name {
+	case "mobile":
+		p.Mobile = value
+	case "email":
+		p.Email = value
+	case "google":
+		p.Google = value
+	case "line":
+		p.Line = value
+	case "facebook":
+		p.Facebook = value
+	case "wechat", "wxgame":
+		p.Wechat = value
+	case "toutiao", "ttgame":
+		p.Toutiao = value
+	default:
+	}
+}
+
 type Account interface {
+	Object
 	GetID() int64
 	SetID(int64)
 	GetDeviceID() string
@@ -31,7 +97,7 @@ type Account interface {
 	SetLocation(string)
 	GetProvider(string) string
 	SetProvider(provider, key string)
-	GetProviders() []string
+	GetProviders() Providers
 }
 
 type Service interface {
@@ -47,10 +113,11 @@ type Service interface {
 
 // OOSModule reprensets an object-oriented storage system
 type OOSModule interface {
-	GetObject(obj interface{}, by ...Field) (bool, error)
-	HasObject(key string, by ...Field) (bool, error)
-	InsertObject(obj interface{}) error
-	UpdateObject(obj interface{}, fields ...string) (int64, error)
+	CreateSchema(Object) error
+	GetObject(obj Object, by ...Field) (bool, error)
+	HasObject(tableName string, by ...Field) (bool, error)
+	InsertObject(obj Object) error
+	UpdateObject(obj Object, fields ...string) (int64, error)
 }
 
 type Field struct {

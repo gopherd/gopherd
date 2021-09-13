@@ -22,26 +22,32 @@ type Config struct {
 		KeyId    string `json:"key_id"`
 	} `json:"jwt"`
 
-	GeoLite struct {
+	GeoIP struct {
 		Filepath string `json:"filepath"`
-	} `json:"geo_lite"`
+	} `json:"geoip"`
 
 	Routers struct {
 		Authorize string `json:"authorize"` // default: /auth/authorize
 		Link      string `json:"link"`      // default: /auth/link
 		SMSCode   string `json:"smscode"`   // default: /auth/smscode
 	} `json:"routers"`
+
+	DB struct {
+		DSN string `json:"dsn"` // mysql dsn
+	}
 }
 
 // Default implements config.Configurator Default method
 func (*Config) Default() config.Configurator {
 	c := &Config{
-		Proviers: make(map[string]string),
+		Proviers:        make(map[string]string),
+		AccessTokenTTL:  3600 * 48,
+		RefreshTokenTTL: 3600 * 24 * 14,
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		home = "."
 	}
-	c.GeoLite.Filepath = filepath.Join(home, "geoip", "GeoLite2-City", "GeoLite2-City.mmdb")
+	c.GeoIP.Filepath = filepath.Join(home, "geoip", "GeoLite2-City.mmdb")
 	return c
 }

@@ -43,7 +43,7 @@ func (mod *geoModule) Init() error {
 	if err := mod.BaseModule.Init(); err != nil {
 		return err
 	}
-	filepath := mod.service.Config().GeoLite.Filepath
+	filepath := mod.service.Config().GeoIP.Filepath
 	db, err := geoip2.Open(filepath)
 	if err != nil {
 		return erron.Throwf("load geoip from %q error: %w", filepath, err)

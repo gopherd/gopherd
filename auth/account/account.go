@@ -30,8 +30,15 @@ func newAccountModule(service Service) *accountModule {
 	}
 }
 
+func (mod *accountModule) Init() error {
+	if err := mod.BaseModule.Init(); err != nil {
+		return err
+	}
+	return mod.service.OOSModule().CreateSchema(newAccount())
+}
+
 func (mod *accountModule) Contains(by ...auth.Field) (bool, error) {
-	return mod.service.OOSModule().HasObject(tableName)
+	return mod.service.OOSModule().HasObject(tableName, by...)
 }
 
 func (mod *accountModule) Store(provider string, account auth.Account) error {
