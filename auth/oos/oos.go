@@ -2,6 +2,7 @@ package oos
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/gopherd/doge/erron"
@@ -25,14 +26,15 @@ func New(service Service) interface {
 
 // oosModule implements auth.OOSModule
 type oosModule struct {
-	module.BaseModule
+	*module.BaseModule
 	service Service
 	db      *gorm.DB
 }
 
 func newOOSModule(service Service) *oosModule {
 	return &oosModule{
-		service: service,
+		BaseModule: module.NewBaseModule("oos"),
+		service:    service,
 	}
 }
 
@@ -54,10 +56,11 @@ func (mod *oosModule) CreateSchema(obj auth.Object) error {
 
 func formatConds(by []auth.Field) []interface{} {
 	if len(by) == 0 {
-		return nil
+		panic("by.len == 0")
+		//return nil
 	}
 	var sb strings.Builder
-	var args = make([]interface{}, len(by)+1)
+	var args = make([]interface{}, 0, len(by)+1)
 	args = append(args, nil)
 	for i := range by {
 		if i > 0 {
@@ -69,6 +72,7 @@ func formatConds(by []auth.Field) []interface{} {
 		args = append(args, by[i].Value)
 	}
 	args[0] = sb.String()
+	fmt.Printf("formatConds: %v\n", args)
 	return args
 }
 

@@ -50,7 +50,9 @@ func Authorize(service auth.Service, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var user *provider.UserInfo
-	if req.Type != provider.Device {
+	if req.Type == provider.Device {
+		req.Device = req.Account
+	} else {
 		// lookup provider
 		p, err := service.Provider(req.Type)
 		if err != nil {

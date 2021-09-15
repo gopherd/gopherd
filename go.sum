@@ -152,6 +152,8 @@ github.com/googleapis/gax-go/v2 v2.0.4/go.mod h1:0Wqv26UfaUD9n4G6kQubkQ+KchISgw+
 github.com/googleapis/gax-go/v2 v2.0.5/go.mod h1:DWXyrwAJ9X0FpwwEdw+IPEYBICEFu5mhpdKc/us6bOk=
 github.com/gopherd/doge v0.0.18 h1:hg6mONi/Gn5n4+zylJhoVmhygX6YQ3dGYTmSbpzfYys=
 github.com/gopherd/doge v0.0.18/go.mod h1:dE0CoD04rbZt5qHOBZTgCdy5JYmUwEtyJtIVe+RM2mU=
+github.com/gopherd/doge v0.0.19 h1:egX9xbvfBsmd1zDNPoxtx5iNjTIEtcZAx+WEARILc8E=
+github.com/gopherd/doge v0.0.19/go.mod h1:dE0CoD04rbZt5qHOBZTgCdy5JYmUwEtyJtIVe+RM2mU=
 github.com/gopherd/jwt v0.0.4 h1:j7MrREUTFKI4Qy99rs5go+b9En+VjG6i+p+1QzYDrhk=
 github.com/gopherd/jwt v0.0.4/go.mod h1:3Px9u/kCFxPTgJbY5HYyOZgVPyH5stRhTsEchl8Jglo=
 github.com/gopherd/log v0.1.5 h1:mCUkSsjJnRjvrmF6mh7Rvo+kyS/6VorYYvHrzAfqT6o=

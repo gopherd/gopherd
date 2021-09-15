@@ -38,6 +38,14 @@ const (
 
 // builtin provider
 const Device = "device"
+const FieldDeviceId = "device_id"
+
+func ProviderFieldName(providerName string) string {
+	if providerName == Device {
+		return FieldDeviceId
+	}
+	return "provider_" + providerName
+}
 
 func Location(country, province, city string) string {
 	if country != "" {

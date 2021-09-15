@@ -11,7 +11,7 @@ const tableName = "account"
 // Account implements auth.Account
 type Account struct {
 	ID           int64          `gorm:"primaryKey;column:id"`
-	DeviceID     string         `gorm:"uniqueIndex;column:device_id"`
+	DeviceID     string         `gorm:"uniqueIndex;column:device_id;not null"`
 	Banned       bool           `gorm:"column:banned"`
 	BannedReason string         `gorm:"column:banned_reason"`
 	RegisterAt   time.Time      `gorm:"column:register_at"`
@@ -26,9 +26,7 @@ type Account struct {
 }
 
 func newAccount() *Account {
-	return &Account{
-		Providers: auth.NewProviders(),
-	}
+	return &Account{}
 }
 
 func (*Account) TableName() string { return tableName }
@@ -53,4 +51,4 @@ func (a *Account) GetLocation() string                { return a.Location }
 func (a *Account) SetLocation(x string)               { a.Location = x }
 func (a *Account) GetProvider(x string) string        { return a.Providers.Get(x) }
 func (a *Account) SetProvider(x, y string)            { a.Providers.Set(x, y) }
-func (a *Account) GetProviders() auth.Providers       { return a.Providers }
+func (a *Account) GetProviders() *auth.Providers      { return &a.Providers }

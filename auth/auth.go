@@ -14,27 +14,17 @@ type Object interface {
 	TableName() string
 }
 
-type Providers interface {
-	Get(name string) string
-	Set(name, value string)
+type Providers struct {
+	Mobile   string `gorm:"uniqueIndex;default:null"`
+	Email    string `gorm:"uniqueIndex;default:null"`
+	Google   string `gorm:"uniqueIndex;default:null"`
+	Line     string `gorm:"uniqueIndex;default:null"`
+	Facebook string `gorm:"uniqueIndex;default:null"`
+	Wechat   string `gorm:"uniqueIndex;default:null"`
+	Toutiao  string `gorm:"uniqueIndex;default:null"`
 }
 
-var NewProviders func() Providers = newProviders
-
-// default DefaultProviders
-type DefaultProviders struct {
-	Mobile   string `gorm:"uniqueIndex"`
-	Email    string `gorm:"uniqueIndex"`
-	Google   string `gorm:"uniqueIndex"`
-	Line     string `gorm:"uniqueIndex"`
-	Facebook string `gorm:"uniqueIndex"`
-	Wechat   string `gorm:"uniqueIndex"`
-	Toutiao  string `gorm:"uniqueIndex"`
-}
-
-func newProviders() Providers { return new(DefaultProviders) }
-
-func (p *DefaultProviders) Get(name string) string {
+func (p *Providers) Get(name string) string {
 	switch name {
 	case "mobile":
 		return p.Mobile
@@ -55,7 +45,7 @@ func (p *DefaultProviders) Get(name string) string {
 	}
 }
 
-func (p *DefaultProviders) Set(name, value string) {
+func (p *Providers) Set(name, value string) {
 	switch name {
 	case "mobile":
 		p.Mobile = value
@@ -97,7 +87,7 @@ type Account interface {
 	SetLocation(string)
 	GetProvider(string) string
 	SetProvider(provider, key string)
-	GetProviders() Providers
+	GetProviders() *Providers
 }
 
 type Service interface {
@@ -125,16 +115,18 @@ type Field struct {
 	Value string
 }
 
+const FieldId = "id"
+
 func ByProvider(name, key string) Field {
 	return Field{
-		Name:  "provider_" + name,
+		Name:  provider.ProviderFieldName(name),
 		Value: key,
 	}
 }
 
 func ByID(id int64) Field {
 	return Field{
-		Name:  "id",
+		Name:  FieldId,
 		Value: strconv.FormatInt(id, 10),
 	}
 }

@@ -21,13 +21,14 @@ func New(service Service) interface {
 
 // smsModule implements auth.SMSModule
 type smsModule struct {
-	module.BaseModule
+	*module.BaseModule
 	service Service
 }
 
 func newSMSModule(service Service) *smsModule {
 	return &smsModule{
-		service: service,
+		BaseModule: module.NewBaseModule("sms"),
+		service:    service,
 	}
 }
 

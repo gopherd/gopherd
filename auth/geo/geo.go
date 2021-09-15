@@ -28,14 +28,15 @@ func New(service Service) interface {
 
 // geoModule implements auth.GeoModule
 type geoModule struct {
-	module.BaseModule
+	*module.BaseModule
 	service Service
 	db      *geoip2.Reader
 }
 
 func newGeoModule(service Service) *geoModule {
 	return &geoModule{
-		service: service,
+		BaseModule: module.NewBaseModule("geo"),
+		service:    service,
 	}
 }
 

@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/gopherd/doge v0.0.18
+	github.com/gopherd/doge v0.0.19
 	github.com/gopherd/jwt v0.0.4
 	github.com/gopherd/log v0.1.5
 	github.com/gopherd/redis v0.0.15

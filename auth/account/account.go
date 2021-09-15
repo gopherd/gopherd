@@ -20,13 +20,14 @@ func New(service Service) interface {
 
 // accountModule implements auth.AccountModule
 type accountModule struct {
-	module.BaseModule
+	*module.BaseModule
 	service Service
 }
 
 func newAccountModule(service Service) *accountModule {
 	return &accountModule{
-		service: service,
+		BaseModule: module.NewBaseModule("account"),
+		service:    service,
 	}
 }
 
@@ -68,7 +69,7 @@ func (mod *accountModule) LoadOrCreate(provider, key, device string) (auth.Accou
 	a.DeviceID = device
 	a.SetProvider(provider, key)
 	if err := mod.service.OOSModule().InsertObject(a); err != nil {
-		return nil, false, nil
+		return nil, false, err
 	}
 	return a, true, nil
 }
