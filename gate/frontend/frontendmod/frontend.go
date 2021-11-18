@@ -534,20 +534,19 @@ func (mod *frontendModule) Unicast(uid int64, content []byte) error {
 	return err
 }
 
-// Broadcast implements module.Frontend Broadcast method
-func (mod *frontendModule) Broadcast(content []byte) error {
-	mod.sessions.broadcast(content, time.Now().UnixNano()/1e6)
-	return nil
-}
-
 // Multicast implements frontend.Module Multicast method
 func (mod *frontendModule) Multicast(uids []int64, content []byte) error {
 	for _, uid := range uids {
-		s := mod.sessions.find(uid)
-		if s != nil {
+		if s := mod.sessions.find(uid); s != nil {
 			s.Write(content)
 		}
 	}
+	return nil
+}
+
+// Broadcast implements module.Frontend Broadcast method
+func (mod *frontendModule) Broadcast(content []byte) error {
+	mod.sessions.broadcast(content, time.Now().UnixNano()/1e6)
 	return nil
 }
 

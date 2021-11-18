@@ -22,10 +22,10 @@ func TestQueryLocation(t *testing.T) {
 	}
 	t.Cleanup(mod.Shutdown)
 	for _, tc := range [][2]string{
-		[2]string{"en", "54.199.163.96"},
-		[2]string{"zh-CN", "111.192.98.171"},
-		[2]string{"en", "218.88.223.255"},
-		[2]string{"zh-CN", "218.88.223.255"},
+		{"en", "54.199.163.96"},
+		{"zh-CN", "111.192.98.171"},
+		{"en", "218.88.223.255"},
+		{"zh-CN", "218.88.223.255"},
 	} {
 		country, province, city, err := mod.QueryLocation(tc[1], tc[0])
 		if err != nil {

@@ -107,7 +107,7 @@ type OOSModule interface {
 	GetObject(obj Object, by ...Field) (bool, error)
 	HasObject(tableName string, by ...Field) (bool, error)
 	InsertObject(obj Object) error
-	UpdateObject(obj Object, fields ...string) (int64, error)
+	UpdateObject(obj Object, fields ...interface{}) (int64, error)
 }
 
 type Field struct {

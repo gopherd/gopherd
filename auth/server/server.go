@@ -172,7 +172,7 @@ func (s *server) onUpdate(now time.Time, dt time.Duration) {
 }
 
 func (s *server) Logger() *log.Logger {
-	return log.GlobalLogger()
+	return log.DefaultLogger
 }
 
 func (s *server) Provider(name string) (provider.Provider, error) {

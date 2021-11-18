@@ -2,15 +2,17 @@ package oos
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/gopherd/doge/erron"
 	"github.com/gopherd/doge/service/module"
-	"github.com/gopherd/gopherd/auth"
-	"github.com/gopherd/gopherd/auth/config"
+	"github.com/gopherd/gorm_logger_wrapper"
+	"github.com/gopherd/log"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+
+	"github.com/gopherd/gopherd/auth"
+	"github.com/gopherd/gopherd/auth/config"
 )
 
 type Service interface {
@@ -42,7 +44,9 @@ func (mod *oosModule) Init() error {
 	if err := mod.BaseModule.Init(); err != nil {
 		return err
 	}
-	if db, err := gorm.Open(mysql.Open(mod.service.Config().DB.DSN), &gorm.Config{}); err != nil {
+	if db, err := gorm.Open(mysql.Open(mod.service.Config().DB.DSN), &gorm.Config{
+		Logger: gorm_logger_wrapper.New(log.DefaultLogger, gorm_logger_wrapper.DefaultCalldepth+2),
+	}); err != nil {
 		return erron.Throw(err)
 	} else {
 		mod.db = db
@@ -56,8 +60,7 @@ func (mod *oosModule) CreateSchema(obj auth.Object) error {
 
 func formatConds(by []auth.Field) []interface{} {
 	if len(by) == 0 {
-		panic("by.len == 0")
-		//return nil
+		return nil
 	}
 	var sb strings.Builder
 	var args = make([]interface{}, 0, len(by)+1)
@@ -72,7 +75,6 @@ func formatConds(by []auth.Field) []interface{} {
 		args = append(args, by[i].Value)
 	}
 	args[0] = sb.String()
-	fmt.Printf("formatConds: %v\n", args)
 	return args
 }
 
@@ -108,14 +110,10 @@ func (mod *oosModule) InsertObject(obj auth.Object) error {
 	return mod.db.Create(obj).Error
 }
 
-func (mod *oosModule) UpdateObject(obj auth.Object, fields ...string) (int64, error) {
+func (mod *oosModule) UpdateObject(obj auth.Object, fields ...interface{}) (int64, error) {
 	var result *gorm.DB
-	var ifields = make([]interface{}, 0, len(fields))
-	for i := range fields {
-		ifields = append(ifields, fields[i])
-	}
-	if len(ifields) > 0 {
-		result = mod.db.Model(obj).Select(ifields[0], ifields[1:]...).Updates(obj)
+	if len(fields) > 0 {
+		result = mod.db.Model(obj).Select(fields[0], fields[1:]...).Updates(obj)
 	} else {
 		result = mod.db.Model(obj).Updates(obj)
 	}

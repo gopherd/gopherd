@@ -22,8 +22,9 @@ import (
 	"github.com/gopherd/gopherd/proto/gatepb"
 )
 
-var errUnknownMessage = errors.New("backend: unknown message")
 var (
+	errUnknownMessage = errors.New("backend: unknown message")
+
 	forwardPool = sync.Pool{
 		New: func() interface{} {
 			return new(gatepb.Forward)

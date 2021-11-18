@@ -11,9 +11,10 @@ import (
 	"github.com/gopherd/doge/net/netutil"
 	"github.com/gopherd/doge/proto"
 	"github.com/gopherd/doge/text/resp"
-	"github.com/gopherd/gopherd/proto/gatepb"
 	"github.com/gopherd/jwt"
 	"github.com/gopherd/log"
+
+	"github.com/gopherd/gopherd/proto/gatepb"
 )
 
 // session state enumerator
@@ -417,7 +418,7 @@ func (ss *sessions) recordIP(sid int64, ip string) bool {
 
 func (ss *sessions) broadcast(data []byte, now int64) {
 	ss.mutex.RLock()
-	defer ss.mutex.Unlock()
+	defer ss.mutex.RUnlock()
 	ttl := ss.ttl()
 	for _, b := range ss.buckets {
 		for sid, s := range b {
