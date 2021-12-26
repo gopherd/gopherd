@@ -14,57 +14,6 @@ type Object interface {
 	TableName() string
 }
 
-type Providers struct {
-	Mobile   string `gorm:"uniqueIndex;default:null"`
-	Email    string `gorm:"uniqueIndex;default:null"`
-	Google   string `gorm:"uniqueIndex;default:null"`
-	Line     string `gorm:"uniqueIndex;default:null"`
-	Facebook string `gorm:"uniqueIndex;default:null"`
-	Wechat   string `gorm:"uniqueIndex;default:null"`
-	Toutiao  string `gorm:"uniqueIndex;default:null"`
-}
-
-func (p *Providers) Get(name string) string {
-	switch name {
-	case "mobile":
-		return p.Mobile
-	case "email":
-		return p.Email
-	case "google":
-		return p.Google
-	case "line":
-		return p.Line
-	case "facebook":
-		return p.Facebook
-	case "wechat", "wxgame":
-		return p.Wechat
-	case "toutiao", "ttgame":
-		return p.Toutiao
-	default:
-		return ""
-	}
-}
-
-func (p *Providers) Set(name, value string) {
-	switch name {
-	case "mobile":
-		p.Mobile = value
-	case "email":
-		p.Email = value
-	case "google":
-		p.Google = value
-	case "line":
-		p.Line = value
-	case "facebook":
-		p.Facebook = value
-	case "wechat", "wxgame":
-		p.Wechat = value
-	case "toutiao", "ttgame":
-		p.Toutiao = value
-	default:
-	}
-}
-
 type Account interface {
 	Object
 	GetID() int64
@@ -87,7 +36,7 @@ type Account interface {
 	SetLocation(string)
 	GetProvider(string) string
 	SetProvider(provider, key string)
-	GetProviders() *Providers
+	GetProviders() map[string]string
 }
 
 type Service interface {

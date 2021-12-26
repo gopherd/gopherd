@@ -58,6 +58,7 @@ func (mod *accountModule) Load(by ...auth.Field) (auth.Account, error) {
 	return a, nil
 }
 
+// FIXME: 当 provider != deviceid 时需要检查改 provider 是否被其他的用户使用
 func (mod *accountModule) LoadOrCreate(provider, key, device string) (auth.Account, bool, error) {
 	a := newAccount()
 	found, err := mod.service.OOSModule().GetObject(a, auth.ByProvider(provider, key))
