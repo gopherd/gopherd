@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/gopherd/doge v0.0.19
 	github.com/gopherd/gorm_logger_wrapper v0.0.2
-	github.com/gopherd/jwt v0.0.4
+	github.com/gopherd/jwt v0.0.5
 	github.com/gopherd/log v0.1.8
 	github.com/gopherd/redis v0.0.15
 	github.com/gopherd/zmq v0.0.9
