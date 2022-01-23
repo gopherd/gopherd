@@ -1,6 +1,6 @@
 module github.com/gopherd/gopherd
 
-go 1.16
+go 1.18
 
 require (
 	github.com/gopherd/doge v0.0.19
