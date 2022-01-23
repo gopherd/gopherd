@@ -150,7 +150,7 @@ func (mod *frontendModule) Update(now time.Time, dt time.Duration) {
 		if mod.pendingSessionsTicker.Next(now) {
 			timestamp := now.UnixNano() / 1e6
 			deleted := make(map[int64]bool)
-			mod.pendingSessions.Range(func(k, v interface{}) bool {
+			mod.pendingSessions.Range(func(k, v any) bool {
 				sid := k.(int64)
 				ps := v.(*pendingSession)
 				if mod.retryLogin(sid, ps, timestamp) {

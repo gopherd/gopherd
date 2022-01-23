@@ -58,12 +58,12 @@ func (mod *oosModule) CreateSchema(obj auth.Object) error {
 	return mod.db.AutoMigrate(obj)
 }
 
-func formatConds(by []auth.Field) []interface{} {
+func formatConds(by []auth.Field) []any {
 	if len(by) == 0 {
 		return nil
 	}
 	var sb strings.Builder
-	var args = make([]interface{}, 0, len(by)+1)
+	var args = make([]any, 0, len(by)+1)
 	args = append(args, nil)
 	for i := range by {
 		if i > 0 {
@@ -110,7 +110,7 @@ func (mod *oosModule) InsertObject(obj auth.Object) error {
 	return mod.db.Create(obj).Error
 }
 
-func (mod *oosModule) UpdateObject(obj auth.Object, fields ...interface{}) (int64, error) {
+func (mod *oosModule) UpdateObject(obj auth.Object, fields ...any) (int64, error) {
 	var result *gorm.DB
 	if len(fields) > 0 {
 		result = mod.db.Model(obj).Select(fields[0], fields[1:]...).Updates(obj)

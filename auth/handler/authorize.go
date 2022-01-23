@@ -182,7 +182,7 @@ func authorized(service auth.Service, ip string, req *api.AuthorizeRequest, acco
 	claims.Payload.Scope = "*"
 	claims.Payload.ID = account.GetID()
 	claims.Payload.IP = ip
-	claims.Payload.Values = map[string]interface{}{
+	claims.Payload.Values = map[string]any{
 		"providers": account.GetProviders(),
 	}
 
