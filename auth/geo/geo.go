@@ -28,20 +28,20 @@ func New(service Service) interface {
 
 // geoModule implements auth.GeoModule
 type geoModule struct {
-	*module.BaseModule
+	*module.BasicModule
 	service Service
 	db      *geoip2.Reader
 }
 
 func newGeoModule(service Service) *geoModule {
 	return &geoModule{
-		BaseModule: module.NewBaseModule("geo"),
+		BasicModule: module.NewBasicModule("geo"),
 		service:    service,
 	}
 }
 
 func (mod *geoModule) Init() error {
-	if err := mod.BaseModule.Init(); err != nil {
+	if err := mod.BasicModule.Init(); err != nil {
 		return err
 	}
 	filepath := mod.service.Config().GeoIP.Filepath
@@ -54,7 +54,7 @@ func (mod *geoModule) Init() error {
 }
 
 func (mod *geoModule) Shutdown() {
-	defer mod.BaseModule.Shutdown()
+	defer mod.BasicModule.Shutdown()
 	if mod.db != nil {
 		mod.db.Close()
 	}

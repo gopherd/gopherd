@@ -9,7 +9,7 @@ import (
 )
 
 type Config struct {
-	config.BaseConfig
+	config.BasicConfig
 
 	AccessTokenTTL  int64             `json:"access_token_ttl"`
 	RefreshTokenTTL int64             `json:"refresh_token_ttl"`

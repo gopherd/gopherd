@@ -6,7 +6,7 @@ import (
 
 // Config represents config of gated service
 type Config struct {
-	config.BaseConfig
+	config.BasicConfig
 
 	Net struct {
 		// Protocol: websocket/tcp

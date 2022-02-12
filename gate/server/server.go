@@ -17,7 +17,7 @@ import (
 )
 
 type server struct {
-	*service.BaseService
+	*service.BasicService
 
 	internal struct {
 		config *config.Config
@@ -38,7 +38,7 @@ func New(cfg *config.Config) service.Service {
 		quit: make(chan struct{}),
 		wait: make(chan struct{}),
 	}
-	s.BaseService = service.NewBaseService(s, cfg)
+	s.BasicService = service.NewBasicService(s, cfg)
 	s.internal.config = cfg
 
 	s.modules.frontend = s.AddModule(frontendmod.New(s)).(frontend.Module)
@@ -57,30 +57,30 @@ func (s *server) RewriteConfig(cfg unsafe.Pointer) {
 	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&s.internal.config)), cfg)
 }
 
-// Init overrides BaseService Init method
+// Init overrides BasicService Init method
 func (s *server) Init() error {
-	if err := s.BaseService.Init(); err != nil {
+	if err := s.BasicService.Init(); err != nil {
 		return erron.Throw(err)
 	}
 	return nil
 }
 
-// Start overrides BaseService Start method
+// Start overrides BasicService Start method
 func (s *server) Start() error {
-	s.BaseService.Start()
+	s.BasicService.Start()
 	go s.run()
 	return nil
 }
 
-// Shutdown overrides BaseService Shutdown method
+// Shutdown overrides BasicService Shutdown method
 func (s *server) Shutdown() error {
 	close(s.quit)
 	<-s.wait
-	return s.BaseService.Shutdown()
+	return s.BasicService.Shutdown()
 }
 
 func (s *server) Busy() bool {
-	return s.BaseService.Busy() || s.modules.frontend.Busy() || s.modules.backend.Busy()
+	return s.BasicService.Busy() || s.modules.frontend.Busy() || s.modules.backend.Busy()
 }
 
 // run runs service's main loop
@@ -103,7 +103,7 @@ func (s *server) run() {
 }
 
 func (s *server) onUpdate(now time.Time, dt time.Duration) {
-	s.BaseService.Update(now, dt)
+	s.BasicService.Update(now, dt)
 }
 
 func (s *server) Arena() *proto.Arena       { return s.arena }

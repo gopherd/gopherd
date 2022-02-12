@@ -51,7 +51,7 @@ type Service interface {
 
 // backendModule implements backend.Module interface
 type backendModule struct {
-	*module.BaseModule
+	*module.BasicModule
 	service Service
 	routers *router.Cache
 	arena   proto.Arena
@@ -59,15 +59,15 @@ type backendModule struct {
 
 func newBackendModule(service Service) *backendModule {
 	return &backendModule{
-		BaseModule: module.NewBaseModule("backend"),
+		BasicModule: module.NewBasicModule("backend"),
 		service:    service,
 		arena:      new(arena),
 	}
 }
 
-// Init overrides BaseModule Init method
+// Init overrides BasicModule Init method
 func (mod *backendModule) Init() error {
-	if err := mod.BaseModule.Init(); err != nil {
+	if err := mod.BasicModule.Init(); err != nil {
 		return err
 	}
 	mod.routers = router.NewCache(mod.service.Discovery())

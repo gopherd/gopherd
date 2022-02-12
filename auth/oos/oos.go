@@ -28,20 +28,20 @@ func New(service Service) interface {
 
 // oosModule implements auth.OOSModule
 type oosModule struct {
-	*module.BaseModule
+	*module.BasicModule
 	service Service
 	db      *gorm.DB
 }
 
 func newOOSModule(service Service) *oosModule {
 	return &oosModule{
-		BaseModule: module.NewBaseModule("oos"),
+		BasicModule: module.NewBasicModule("oos"),
 		service:    service,
 	}
 }
 
 func (mod *oosModule) Init() error {
-	if err := mod.BaseModule.Init(); err != nil {
+	if err := mod.BasicModule.Init(); err != nil {
 		return err
 	}
 	if db, err := gorm.Open(mysql.Open(mod.service.Config().DB.DSN), &gorm.Config{

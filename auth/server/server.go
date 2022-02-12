@@ -26,7 +26,7 @@ import (
 )
 
 type server struct {
-	*service.BaseService
+	*service.BasicService
 
 	internal struct {
 		config *config.Config
@@ -60,7 +60,7 @@ func New(cfg *config.Config) service.Service {
 		quit:      make(chan struct{}),
 		wait:      make(chan struct{}),
 	}
-	s.BaseService = service.NewBaseService(s, cfg)
+	s.BasicService = service.NewBasicService(s, cfg)
 	s.internal.config = cfg
 	s.modules.oos = s.AddModule(oos.New(s)).(auth.OOSModule)
 	s.modules.account = s.AddModule(account.New(s)).(auth.AccountModule)
@@ -79,9 +79,9 @@ func (s *server) RewriteConfig(cfg unsafe.Pointer) {
 	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&s.internal.config)), cfg)
 }
 
-// Init overrides BaseService Init method
+// Init overrides BasicService Init method
 func (s *server) Init() error {
-	err := s.BaseService.Init()
+	err := s.BasicService.Init()
 	if err != nil {
 		return erron.Throw(err)
 	}
@@ -99,21 +99,21 @@ func (s *server) Init() error {
 	return nil
 }
 
-// Start overrides BaseService Start method
+// Start overrides BasicService Start method
 func (s *server) Start() error {
-	s.BaseService.Start()
+	s.BasicService.Start()
 	s.registerHTTPHandlers()
 	go s.http.server.Serve(s.http.listener)
 	go s.run()
 	return nil
 }
 
-// Shutdown overrides BaseService Shutdown method
+// Shutdown overrides BasicService Shutdown method
 func (s *server) Shutdown() error {
 	s.shutdownHTTPServer()
 	close(s.quit)
 	<-s.wait
-	return s.BaseService.Shutdown()
+	return s.BasicService.Shutdown()
 }
 
 func or(x, y string) string {
@@ -145,7 +145,7 @@ func (s *server) shutdownHTTPServer() {
 }
 
 func (s *server) Busy() bool {
-	return s.BaseService.Busy() || (s.http.server != nil && s.http.server.NumHandling() > 0)
+	return s.BasicService.Busy() || (s.http.server != nil && s.http.server.NumHandling() > 0)
 }
 
 // run runs service's main loop
@@ -168,7 +168,7 @@ func (s *server) run() {
 }
 
 func (s *server) onUpdate(now time.Time, dt time.Duration) {
-	s.BaseService.Update(now, dt)
+	s.BasicService.Update(now, dt)
 }
 
 func (s *server) Logger() *log.Logger {

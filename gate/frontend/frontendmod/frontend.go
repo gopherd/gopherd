@@ -51,7 +51,7 @@ type Service interface {
 
 // frontendModule implements frontend.Module interface
 type frontendModule struct {
-	*module.BaseModule
+	*module.BasicModule
 	service      Service
 	shuttingDown int32
 
@@ -66,7 +66,7 @@ type frontendModule struct {
 
 func newFrontendModule(service Service) *frontendModule {
 	mod := &frontendModule{
-		BaseModule:            module.NewBaseModule("frontend"),
+		BasicModule:            module.NewBasicModule("frontend"),
 		service:               service,
 		pendingSessionsTicker: timer.NewTicker(time.Second),
 	}
@@ -74,9 +74,9 @@ func newFrontendModule(service Service) *frontendModule {
 	return mod
 }
 
-// Init overrides BaseModule Init method
+// Init overrides BasicModule Init method
 func (mod *frontendModule) Init() error {
-	if err := mod.BaseModule.Init(); err != nil {
+	if err := mod.BasicModule.Init(); err != nil {
 		return err
 	}
 	cfg := mod.service.Config()
@@ -122,15 +122,15 @@ func (mod *frontendModule) Init() error {
 	return nil
 }
 
-// Start overrides BaseModule Start method
+// Start overrides BasicModule Start method
 func (mod *frontendModule) Start() {
-	mod.BaseModule.Start()
+	mod.BasicModule.Start()
 	go mod.server.Serve(mod.listener)
 }
 
-// Shutdown overrides BaseModule Shutdown method
+// Shutdown overrides BasicModule Shutdown method
 func (mod *frontendModule) Shutdown() {
-	mod.BaseModule.Shutdown()
+	mod.BasicModule.Shutdown()
 	mod.clean()
 }
 
@@ -138,9 +138,9 @@ func (mod *frontendModule) clean() {
 	mod.sessions.shutdown()
 }
 
-// Update overrides BaseModule Update method
+// Update overrides BasicModule Update method
 func (mod *frontendModule) Update(now time.Time, dt time.Duration) {
-	mod.BaseModule.Update(now, dt)
+	mod.BasicModule.Update(now, dt)
 
 	if mod.service.State() == service.Stopping {
 		if atomic.CompareAndSwapInt32(&mod.shuttingDown, 0, 1) {

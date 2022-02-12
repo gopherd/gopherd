@@ -20,19 +20,19 @@ func New(service Service) interface {
 
 // accountModule implements auth.AccountModule
 type accountModule struct {
-	*module.BaseModule
+	*module.BasicModule
 	service Service
 }
 
 func newAccountModule(service Service) *accountModule {
 	return &accountModule{
-		BaseModule: module.NewBaseModule("account"),
+		BasicModule: module.NewBasicModule("account"),
 		service:    service,
 	}
 }
 
 func (mod *accountModule) Init() error {
-	if err := mod.BaseModule.Init(); err != nil {
+	if err := mod.BasicModule.Init(); err != nil {
 		return err
 	}
 	return mod.service.OOSModule().CreateSchema(newAccount())
